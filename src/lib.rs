@@ -1,14 +1,43 @@
-mod iter;
+#![deny(missing_docs)]
 
+/*!
+`eks` is an entity-component system crate with a focus on simplicity.
+*/
+
+pub mod iter;
+
+/// An indexing operation that may or may not be successful
 pub trait TryRef<I> {
+    /// The index output type
     type Output;
+    /// Try to get a reference by index
     fn try_ref(&self, index: I) -> Option<&Self::Output>;
 }
 
+/// A mutable indexing operation that may or may not be successful
 pub trait TryMut<I>: TryRef<I> {
+    /// Try to get a mutable reference by index
     fn try_mut(&mut self, index: I) -> Option<&mut Self::Output>;
 }
 
+/**
+Sets up components for the ECS
+
+Syntax is similar to a `struct`. For each component, a unit `struct` is created,
+and a variant is added to a `Component` `enum`.
+
+# Example
+```
+use eks::*;
+
+component! {
+    Position: isize,
+    Size: usize,
+    Speed: isize,
+    IsAlive: bool
+}
+```
+*/
 #[macro_export]
 macro_rules! component {
     ($($id:ident: $ty:ty),*) => {
@@ -80,17 +109,20 @@ macro_rules! component {
     };
 }
 
+/// An entity in the ECS
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Entity<T> {
     components: Vec<T>,
 }
 
 impl<T> Entity<T> {
+    /// Create a new `Entity`
     pub fn new() -> Entity<T> {
         Entity {
             components: Vec::new(),
         }
     }
+    /// Add a component to the `Entity`
     pub fn with(mut self, component: T) -> Self {
         self.components.push(component);
         self
@@ -110,11 +142,13 @@ impl<T> std::ops::DerefMut for Entity<T> {
     }
 }
 
+/// The world of the ECS
 pub struct World<T> {
     entities: Vec<Entity<T>>,
 }
 
 impl<T> World<T> {
+    /// Create a new `World`
     pub fn new() -> World<T> {
         World {
             entities: Vec::new(),
@@ -123,12 +157,14 @@ impl<T> World<T> {
 }
 
 impl<T> World<T> {
-    pub fn iter1<A>(&self, component: A) -> iter::Iter<'_, T, A> {
-        iter::Iter {
+    /// Iterate over all `Entity`s that have the given component with access to its value
+    pub fn iter1<A>(&self, component: A) -> iter::Iter1<'_, T, A> {
+        iter::Iter1 {
             iter: self.entities.iter(),
             a: component,
         }
     }
+    /// Iterate over all `Entity`s that have both the given components with access to their values
     pub fn iter2<A, B>(&self, a: A, b: B) -> iter::Iter2<'_, T, A, B> {
         iter::Iter2 {
             iter: self.entities.iter(),
