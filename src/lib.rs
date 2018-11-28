@@ -6,6 +6,8 @@
 
 mod iter;
 
+use std::collections::HashMap;
+
 pub use crate::iter::*;
 
 /// An indexing operation that may or may not be successful
@@ -66,25 +68,29 @@ macro_rules! component {
             }
             impl TryRef<$id> for Entity<Component> {
                 type Output = $ty;
-                fn try_ref(&self, _index: $id) -> Option<&Self::Output> {
-                    for comp in self.iter() {
-                        match comp {
-                            Component::$id(ref val) => return Some(val),
-                            _ => ()
+                fn try_ref(&self, index: $id) -> Option<&Self::Output> {
+                    let s = format!("{:?}", index);
+                    if let Some(index) = self.indices.get(&s).cloned() {
+                        match &self.components[index] {
+                            Component::$id(ref val) => Some(val),
+                            _ => panic!("Entity::indices led to incorrect component")
                         }
+                    } else {
+                        None
                     }
-                    None
                 }
             }
             impl TryMut<$id> for Entity<Component> {
-                fn try_mut(&mut self, _index: $id) -> Option<&mut Self::Output> {
-                    for comp in self.iter_mut() {
-                        match comp {
-                            Component::$id(ref mut val) => return Some(val),
-                            _ => ()
+                fn try_mut(&mut self, index: $id) -> Option<&mut Self::Output> {
+                    let s = format!("{:?}", index);
+                    if let Some(index) = self.indices.get(&s).cloned() {
+                        match &mut self.components[index] {
+                            Component::$id(ref mut val) => Some(val),
+                            _ => panic!("Entity::indices led to incorrect component")
                         }
+                    } else {
+                        None
                     }
-                    None
                 }
             }
             impl std::ops::Index<$id> for Entity<Component> {
@@ -105,13 +111,30 @@ macro_rules! component {
         pub enum Component {
             $($id($ty)),*
         }
+
+        impl ToString for Component {
+            fn to_string(&self) -> String {
+                match self {
+                    $(Component::$id(_) => format!("{:?}", $id::default())),*
+                }
+            }
+        }
     };
 }
 
-/// An entity in the ECS
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+/**
+An entity in the ECS
+
+The fields of this `struct` are public so that the `component!`
+macro works correctly. They should not be modified directly.
+*/
+#[derive(Debug, Clone, PartialEq)]
 pub struct Entity<T> {
-    components: Vec<T>,
+    /// The actual list of components
+    pub components: Vec<T>,
+    /// A map of formatted component names to indices in
+    /// the `components`
+    pub indices: HashMap<String, usize>,
 }
 
 impl<T> Entity<T> {
@@ -119,25 +142,18 @@ impl<T> Entity<T> {
     pub fn new() -> Entity<T> {
         Entity {
             components: Vec::new(),
+            indices: HashMap::new(),
         }
     }
+}
+
+impl<T: ToString> Entity<T> {
     /// Add a component to the `Entity`
     pub fn with(mut self, component: T) -> Self {
+        self.indices
+            .insert(component.to_string(), self.components.len());
         self.components.push(component);
         self
-    }
-}
-
-impl<T> std::ops::Deref for Entity<T> {
-    type Target = Vec<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.components
-    }
-}
-
-impl<T> std::ops::DerefMut for Entity<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.components
     }
 }
 
