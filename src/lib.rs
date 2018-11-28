@@ -129,17 +129,17 @@ The fields of this `struct` are public so that the `component!`
 macro works correctly. They should not be modified directly.
 */
 #[derive(Debug, Clone, PartialEq)]
-pub struct Entity<T> {
+pub struct Entity<C> {
     /// The actual list of components
-    pub components: Vec<T>,
+    pub components: Vec<C>,
     /// A map of formatted component names to indices in
     /// the `components`
     pub indices: HashMap<String, usize>,
 }
 
-impl<T> Entity<T> {
+impl<C> Entity<C> {
     /// Create a new `Entity`
-    pub fn new() -> Entity<T> {
+    pub fn new() -> Entity<C> {
         Entity {
             components: Vec::new(),
             indices: HashMap::new(),
@@ -147,38 +147,45 @@ impl<T> Entity<T> {
     }
 }
 
-impl<T: ToString> Entity<T> {
+impl<C: ToString> Entity<C> {
     /// Add a component to the `Entity`
-    pub fn with(mut self, component: T) -> Self {
-        self.indices
-            .insert(component.to_string(), self.components.len());
-        self.components.push(component);
+    pub fn with(mut self, component: C) -> Self {
+        self.add(component);
         self
+    }
+    /// Add a component to the `Entity`
+    pub fn add(&mut self, component: C) {
+        let s = component.to_string();
+        if !self.indices.contains_key(&s) {
+            self.indices
+                .insert(component.to_string(), self.components.len());
+            self.components.push(component);
+        }
     }
 }
 
 /// The world of the ECS
-pub struct World<T> {
-    entities: Vec<Entity<T>>,
+pub struct World<C> {
+    entities: Vec<Entity<C>>,
 }
 
-impl<T> World<T> {
+impl<C> World<C> {
     /// Create a new `World`
-    pub fn new() -> World<T> {
+    pub fn new() -> World<C> {
         World {
             entities: Vec::new(),
         }
     }
 }
 
-impl<T> std::ops::Deref for World<T> {
-    type Target = Vec<Entity<T>>;
+impl<C> std::ops::Deref for World<C> {
+    type Target = Vec<Entity<C>>;
     fn deref(&self) -> &Self::Target {
         &self.entities
     }
 }
 
-impl<T> std::ops::DerefMut for World<T> {
+impl<C> std::ops::DerefMut for World<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.entities
     }
