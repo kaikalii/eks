@@ -28,6 +28,16 @@ where
     }
 }
 
+impl<T, C> Index<C> for T
+where
+    Entity<C>: TryRef<T>,
+{
+    type Output = <Entity<C> as TryRef<T>>::Output;
+    fn try_entity(self, entity: &Entity<C>) -> Option<&Self::Output> {
+        entity.try_ref(self)
+    }
+}
+
 /// An index wrapper that designates a reference type
 pub trait IndexMut<'a, C> {
     /// The reference to the component's value
@@ -44,6 +54,17 @@ where
     type Reference = &'a <Entity<C> as TryRef<T>>::Output;
     fn try_entity_mut(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
         entity.try_ref(self.0)
+    }
+}
+
+impl<'a, T, C> IndexMut<'a, C> for T
+where
+    Entity<C>: TryRef<T>,
+    <Entity<C> as TryRef<T>>::Output: 'a,
+{
+    type Reference = &'a <Entity<C> as TryRef<T>>::Output;
+    fn try_entity_mut(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
+        entity.try_ref(self)
     }
 }
 

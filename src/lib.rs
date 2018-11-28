@@ -182,16 +182,13 @@ mod test {
         world.push(Entity::new().with(Position(-1)).with(Speed(3)));
         for (position, speed) in world
             .iter_mut()
-            .filter_map(map_mut!(Position::as_mut(), Speed::as_ref()))
+            .filter_map(map_mut!(Position::as_mut(), Speed {}))
         {
             *position += *speed
         }
         assert_eq!(
             Some((&2, &3)),
-            world
-                .iter()
-                .filter_map(map!(Position::as_ref(), Speed::as_ref()))
-                .next()
+            world.iter().filter_map(map!(Position {}, Speed {})).next()
         );
     }
 }
