@@ -4,7 +4,9 @@
 `eks` is an entity-component system crate with a focus on simplicity.
 */
 
-pub mod iter;
+mod iter;
+
+pub use crate::iter::*;
 
 /// An indexing operation that may or may not be successful
 pub trait TryRef<I> {
@@ -60,6 +62,12 @@ macro_rules! component {
                 pub fn try_of_mut(entity: &mut Entity<Component>) -> Option<&mut $ty> {
                     entity.try_mut($id {})
                 }
+                pub fn as_ref() -> Ref<Self> {
+                    Ref($id {})
+                }
+                pub fn as_mut() -> Mut<Self> {
+                    Mut($id {})
+                }
             }
             #[allow(non_snake_case)]
             pub fn $id(val: $ty) -> Component {
@@ -104,7 +112,7 @@ macro_rules! component {
         )*
         #[derive(Debug, Clone, PartialEq, PartialOrd)]
         pub enum Component {
-            $($id($ty),)*
+            $($id($ty)),*
         }
     };
 }
@@ -156,24 +164,6 @@ impl<T> World<T> {
     }
 }
 
-impl<T> World<T> {
-    /// Iterate over all `Entity`s that have the given component with access to its value
-    pub fn iter1<A>(&self, component: A) -> iter::Iter1<'_, T, A> {
-        iter::Iter1 {
-            iter: self.entities.iter(),
-            a: component,
-        }
-    }
-    /// Iterate over all `Entity`s that have both the given components with access to their values
-    pub fn iter2<A, B>(&self, a: A, b: B) -> iter::Iter2<'_, T, A, B> {
-        iter::Iter2 {
-            iter: self.entities.iter(),
-            a,
-            b,
-        }
-    }
-}
-
 impl<T> std::ops::Deref for World<T> {
     type Target = Vec<Entity<T>>;
     fn deref(&self) -> &Self::Target {
@@ -194,13 +184,23 @@ mod test {
     fn compiles() {
         component! {
             Position: isize,
-            Size: usize
+            Speed: isize
         };
         let mut world = World::new();
-        world.push(Entity::new().with(Size(5)));
-        world.push(Entity::new().with(Size(3)).with(Position(-1)));
-        let mut iter = world.iter2(Size {}, Position {});
-        assert_eq!(Some((&3, &-1)), iter.next());
-        assert_eq!(None, iter.next());
+        world.push(Entity::new().with(Position(5)));
+        world.push(Entity::new().with(Position(-1)).with(Speed(3)));
+        for (position, speed) in world
+            .iter()
+            .filter_map(map!(Position::as_mut(), Speed::as_ref()))
+        {
+            *position += *speed
+        }
+        assert_eq!(
+            Some((&2, &3)),
+            world
+                .iter()
+                .filter_map(map!(Position::as_ref(), Speed::as_ref()))
+                .next()
+        );
     }
 }

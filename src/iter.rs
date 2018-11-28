@@ -1,62 +1,70 @@
 //! `World` iterators
 
-use crate::{Entity, TryRef};
+use crate::{Entity, TryMut, TryRef};
 
-/// An iterator over one component in a `World`. Created by `World::iter1`.
-pub struct Iter1<'a, T, A> {
-    pub(crate) iter: std::slice::Iter<'a, Entity<T>>,
-    pub(crate) a: A,
+/// An index wrapper that designates an immutable reference
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Ref<T>(pub T);
+
+/// An index wrapper that designates a mutable reference
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Mut<T>(pub T);
+
+/// An index wrapper that designates a reference type
+pub trait Index<'a, C> {
+    /// The reference to the component's value
+    type Reference;
+    /// Try to get a reference from an `Entity`
+    fn try_entity(self, entity: &'a Entity<C>) -> Option<Self::Reference>;
 }
 
-impl<'a, T, A> Iterator for Iter1<'a, T, A>
+impl<'a, T, C> Index<'a, C> for Ref<T>
 where
-    A: Copy,
-    Entity<T>: TryRef<A>,
-    <Entity<T> as TryRef<A>>::Output: 'a,
+    Entity<C>: TryRef<T>,
+    <Entity<C> as TryRef<T>>::Output: 'a,
 {
-    type Item = &'a <Entity<T> as TryRef<A>>::Output;
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(entity) = self.iter.next() {
-                if let Some(a) = entity.try_ref(self.a) {
-                    break Some(a);
-                }
-            } else {
-                break None;
-            }
-        }
+    type Reference = &'a <Entity<C> as TryRef<T>>::Output;
+    fn try_entity(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
+        entity.try_ref(self.0)
     }
 }
 
-/// An iterator over two components in a `World`. Created by `World::iter2`.
-pub struct Iter2<'a, T, A, B> {
-    pub(crate) iter: std::slice::Iter<'a, Entity<T>>,
-    pub(crate) a: A,
-    pub(crate) b: B,
+impl<'a, T, C> Index<'a, C> for Mut<T>
+where
+    Entity<C>: TryMut<T>,
+    <Entity<C> as TryRef<T>>::Output: 'a,
+{
+    type Reference = &'a mut <Entity<C> as TryRef<T>>::Output;
+    fn try_entity(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
+        unsafe {
+            (entity as *const Entity<C> as *mut Entity<C>)
+                .as_mut()
+                .unwrap()
+        }
+        .try_mut(self.0)
+    }
 }
 
-impl<'a, T, A, B> Iterator for Iter2<'a, T, A, B>
-where
-    A: Copy,
-    B: Copy,
-    Entity<T>: TryRef<A>,
-    <Entity<T> as TryRef<A>>::Output: 'a,
-    Entity<T>: TryRef<B>,
-    <Entity<T> as TryRef<B>>::Output: 'a,
-{
-    type Item = (
-        &'a <Entity<T> as TryRef<A>>::Output,
-        &'a <Entity<T> as TryRef<B>>::Output,
-    );
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(entity) = self.iter.next() {
-                if let (Some(a), Some(b)) = (entity.try_ref(self.a), entity.try_ref(self.b)) {
-                    break Some((a, b));
-                }
-            } else {
-                break None;
-            }
+#[macro_export]
+macro_rules! entity_as {
+    ($entity:expr, $index:expr) => {
+        $index.try_entity(&$entity)
+    };
+    ($entity:expr, $($index:expr),*) => {
+        if $($index.try_entity(&$entity).is_some() &&)* true {
+            Some(($($index.try_entity(&$entity).unwrap()),*))
+        } else {
+            None
         }
-    }
+    };
+}
+
+#[macro_export]
+macro_rules! map {
+    ($index:expr) => {
+        |entity| entity_as!(entity, $index)
+    };
+    ($($index:expr),*) => {
+        |entity| entity_as!(entity, $($index),*)
+    };
 }
