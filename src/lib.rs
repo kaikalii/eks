@@ -47,24 +47,15 @@ macro_rules! component {
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
             pub struct $id {}
             impl $id {
+                /// Create a new `Component`
                 pub fn new(val: $ty) -> Component {
                     Component::$id(val)
                 }
-                pub fn of(entity: &Entity<Component>) -> &$ty {
-                    &entity[$id {}]
-                }
-                pub fn of_mut(entity: &mut Entity<Component>) -> &mut $ty {
-                    &mut entity[$id {}]
-                }
-                pub fn try_of(entity: &Entity<Component>) -> Option<&$ty> {
-                    entity.try_ref($id {})
-                }
-                pub fn try_of_mut(entity: &mut Entity<Component>) -> Option<&mut $ty> {
-                    entity.try_mut($id {})
-                }
+                /// Create a new `Ref` indexer
                 pub fn as_ref() -> Ref<Self> {
                     Ref($id {})
                 }
+                /// Create a new `Mut` indexer
                 pub fn as_mut() -> Mut<Self> {
                     Mut($id {})
                 }
