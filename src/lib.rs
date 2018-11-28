@@ -4,11 +4,11 @@
 `eks` is an entity-component system crate with a focus on simplicity.
 */
 
-mod iter;
+mod map;
 
 use std::collections::HashMap;
 
-pub use crate::iter::*;
+pub use crate::map::*;
 
 /// An indexing operation that may or may not be successful
 pub trait TryRef<I> {
