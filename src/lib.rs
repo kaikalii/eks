@@ -181,8 +181,8 @@ mod test {
         world.push(Entity::new().with(Position(5)));
         world.push(Entity::new().with(Position(-1)).with(Speed(3)));
         for (position, speed) in world
-            .iter()
-            .filter_map(map!(Position::as_mut(), Speed::as_ref()))
+            .iter_mut()
+            .filter_map(map_mut!(Position::as_mut(), Speed::as_ref()))
         {
             *position += *speed
         }
