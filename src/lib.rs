@@ -18,8 +18,15 @@ fn main() {
     let mut world = World::new();
 
     // Add some entities
-    world.push(Entity::new().with(Position(0)).with(Speed(-1)));
-    world.push(Entity::new().with(Position(2)).with(Speed(3)).with(Special(())));
+    world.push(entity! {
+        Position: 0,
+        Speed: -1
+    });
+    world.push(entity! {
+        Position: 2,
+        Speed: 3,
+        Special: ()
+    });
 
     // Move the entites forward one step
     for (position, speed) in world.iter_mut().filter_map(
@@ -198,6 +205,15 @@ impl<C: ToString> Entity<C> {
     }
 }
 
+#[macro_export]
+macro_rules! entity {
+    ($($id:ident: $value:expr),*) => {{
+        let mut entity = Entity::new();
+        $(entity.add($id($value));)*
+        entity
+    }};
+}
+
 /// The world of the ECS
 pub struct World<C> {
     entities: Vec<Entity<C>>,
@@ -234,15 +250,24 @@ mod test {
             Position: isize,
             Speed: isize
         };
+
         let mut world = World::new();
-        world.push(Entity::new().with(Position(5)));
-        world.push(Entity::new().with(Position(-1)).with(Speed(3)));
+
+        world.push(entity! {
+            Position: 5
+        });
+        world.push(entity! {
+            Position: -1,
+            Speed: 3
+        });
+
         for (position, speed) in world
             .iter_mut()
             .filter_map(map_mut!(Position::as_mut(), Speed {}))
         {
             *position += *speed
         }
+
         assert_eq!(
             Some((&2, &3)),
             world.iter().filter_map(map!(Position {}, Speed {})).next()
