@@ -52,8 +52,8 @@ will not be a tuple.
 */
 #[macro_export]
 macro_rules! map {
-    ($name:ident) => {
-        |entity| $name::try_entity(entity)
+    ($($name:ident),* in $world:expr) => {
+        $world.iter().filter_map(map!($($name),*))
     };
     ($($name:ident),*) => {
         |entity| if $($name::try_entity(entity).is_some() &&)* true {
@@ -86,9 +86,12 @@ macro_rules! map_mut {
     ($name:ident) => {
         |entity| $name::try_entity_mut(entity)
     };
+    ($($name:ident),* in $world:expr) => {
+        $world.iter_mut().filter_map(map_mut!($($name),*))
+    };
     ($($name:ident),*) => {
-        |entity| if $(map_mut!($name)(entity).is_some() &&)* true {
-            Some(($(map_mut!($name)(entity).unwrap()),*))
+        |entity| if $($name::try_entity_mut(entity).is_some() &&)* true {
+            Some(($($name::try_entity_mut(entity).unwrap()),*))
         } else {
             None
         }
@@ -112,8 +115,8 @@ i.e. `map_mut_checked!(Foo, Foo)`.
 */
 #[macro_export]
 macro_rules! map_mut_checked {
-    ($name:ident) => {
-        |entity| $name::try_entity_mut(entity)
+    ($($name:ident),* in $world:expr) => {
+        $world.iter_mut().filter_map(map_mut_checked!($($name),*))
     };
     ($($name:ident),*) => {
         |entity| {
@@ -127,8 +130,8 @@ macro_rules! map_mut_checked {
                     panic!("{:?} is used twice in `map_mut_checked` in {} on line {}:{}", s, file!(), line!(), column!());
                 }
             )*
-            if $(map_mut_checked!($name)(entity).is_some() &&)* true {
-                Some(($(map_mut_checked!($name)(entity).unwrap()),*))
+            if $($name::try_entity_mut(entity).is_some() &&)* true {
+                Some(($($name::try_entity_mut(entity).unwrap()),*))
             } else {
                 None
             }
@@ -142,8 +145,8 @@ contains all spcified components.
 */
 #[macro_export]
 macro_rules! tags {
-    ($name:ident) => {
-        |entity| $name::try_entity(entity).is_some()
+    ($($name:ident),* in $world:expr) => {
+        $world.iter().filter(tags!($($name),*))
     };
     ($($name:ident),*) => {
         |entity| $($name::try_entity(entity).is_some() &&)* true

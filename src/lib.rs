@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 
 /*!
-`eks` is an entity-component system crate with a focus on simplicity.
+`eks` is an entity-component system crate with a focus on simplicity and ergonomics.
 
 # Example
 ```
@@ -29,15 +29,15 @@ fn main() {
     });
 
     // Move the entites forward one step
-    for (position, speed) in world.components_mut(map_mut!(Position, Speed)) {
+    for (position, speed) in map_mut!(Position, Speed in world) {
         *position += *speed;
     }
 
     // Check that it worked
-    let mut position_iter = world.components(map!(Position));
+    let mut position_iter = map!(Position in world);
     assert_eq!(Some(&-1), position_iter.next());
     assert_eq!(Some(& 5), position_iter.next());
-    assert_eq!(1, world.entities_with(tags!(Special)).count())
+    assert_eq!(1, tags!(Special in world).count())
 }
 ```
 */
@@ -191,6 +191,27 @@ impl<C: ToString> Entity<C> {
     }
 }
 
+/**
+Creates an `Entity` with `struct`-like syntax.
+
+# Example
+```
+use eks::*;
+
+component! {
+    Name: String,
+    Age: u8
+}
+
+fn main() {
+    let dan = entity! {
+        Name: "Dan".to_string(),
+        Age: 26
+    };
+    assert_eq!(26, dan[Age {}])
+}
+```
+*/
 #[macro_export]
 macro_rules! entity {
     ($($id:ident: $value:expr),*) => {{
@@ -211,33 +232,6 @@ impl<C> World<C> {
         World {
             entities: Vec::new(),
         }
-    }
-    /// Equivalent to `World::iter().filter_map(f)`
-    pub fn components<'a, T, F>(
-        &'a self,
-        f: F,
-    ) -> std::iter::FilterMap<std::slice::Iter<'a, Entity<C>>, F>
-    where
-        F: Fn(&'a Entity<C>) -> Option<T>,
-    {
-        self.iter().filter_map(f)
-    }
-    /// Equivalent to `World::iter_mut().filter_map(f)`
-    pub fn components_mut<'a, T, F>(
-        &'a mut self,
-        f: F,
-    ) -> std::iter::FilterMap<std::slice::IterMut<'a, Entity<C>>, F>
-    where
-        F: Fn(&'a mut Entity<C>) -> Option<T>,
-    {
-        self.iter_mut().filter_map(f)
-    }
-    /// Equivalent to `World::iter().filter(f)`
-    pub fn entities_with<F>(&self, f: F) -> std::iter::Filter<std::slice::Iter<Entity<C>>, F>
-    where
-        F: Fn(&&Entity<C>) -> bool,
-    {
-        self.iter().filter(f)
     }
 }
 
@@ -274,15 +268,12 @@ mod test {
             Speed: 3
         });
 
-        for (position, speed) in world.components_mut(map_mut!(Position, Speed)) {
+        for (position, speed) in map_mut_checked!(Position, Speed in world) {
             *position += *speed
         }
 
-        assert_eq!(
-            Some((&2, &3)),
-            world.components(map!(Position, Speed)).next()
-        );
-        assert_eq!(1, world.entities_with(tags!(Speed)).count());
+        assert_eq!(Some((&2, &3)), map!(Position, Speed in world).next());
+        assert_eq!(1, tags!(Speed in world).count());
 
         *map_mut!(Position)(&mut world[0]).unwrap() = 10;
     }
