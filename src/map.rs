@@ -110,10 +110,10 @@ will not be a tuple.
 #[macro_export]
 macro_rules! map {
     ($name:expr) => {
-        |entity: & Entity<_>| $name.try_entity(entity)
+        |entity| $name.try_entity(entity)
     };
     ($($name:expr),*) => {
-        |entity: & Entity<_>| if $($name.try_entity(entity).is_some() &&)* true {
+        |entity| if $($name.try_entity(entity).is_some() &&)* true {
             Some(($($name.try_entity(entity).unwrap()),*))
         } else {
             None
@@ -141,10 +141,10 @@ runtime checks that no two components are the same, use
 #[macro_export]
 macro_rules! map_mut {
     ($name:expr) => {
-        |entity: &mut Entity<_>| $name.try_entity_mut(entity)
+        |entity| $name.try_entity_mut(entity)
     };
     ($($name:expr),*) => {
-        |entity: &mut Entity<_>| if $($name.try_entity_mut(entity).is_some() &&)* true {
+        |entity| if $($name.try_entity_mut(entity).is_some() &&)* true {
             Some(($($name.try_entity_mut(entity).unwrap()),*))
         } else {
             None
@@ -170,10 +170,10 @@ i.e. `map_mut_checked!(Foo::as_mut(), Foo::as_ref())`.
 #[macro_export]
 macro_rules! map_mut_checked {
     ($name:expr) => {
-        |entity: &mut Entity<_>| $name.try_entity_mut(entity)
+        |entity| $name.try_entity_mut(entity)
     };
     ($($name:expr),*) => {
-        |entity: &mut Entity<_>| {
+        |entity| {
             use std::collections::HashSet;
             let mut used: HashSet<String> = HashSet::new();
             $(
@@ -190,5 +190,19 @@ macro_rules! map_mut_checked {
                 None
             }
         }
+    };
+}
+
+/**
+Creates a closure that returns whether or not an `Entity`
+contains all spcified components.
+*/
+#[macro_export]
+macro_rules! tags {
+    ($name:expr) => {
+        |entity| $name.try_entity(entity).is_some()
+    };
+    ($($name:expr),*) => {
+        |entity| $($name.try_entity(entity).is_some() &&)* true
     };
 }

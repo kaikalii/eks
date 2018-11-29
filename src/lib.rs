@@ -9,7 +9,8 @@ use eks::*;
 
 component! {
     Position: isize,
-    Speed: isize
+    Speed: isize,
+    Special: ()
 }
 
 fn main() {
@@ -18,7 +19,7 @@ fn main() {
 
     // Add some entities
     world.push(Entity::new().with(Position(0)).with(Speed(-1)));
-    world.push(Entity::new().with(Position(2)).with(Speed(3)));
+    world.push(Entity::new().with(Position(2)).with(Speed(3)).with(Special(())));
 
     // Move the entites forward one step
     for (position, speed) in world.iter_mut().filter_map(
@@ -31,6 +32,7 @@ fn main() {
     let mut position_iter = world.iter().filter_map(map!(Position::as_ref()));
     assert_eq!(Some(&-1), position_iter.next());
     assert_eq!(Some(& 5), position_iter.next());
+    assert_eq!(1, world.iter().filter(tags!(Special {})).count())
 }
 ```
 */
@@ -245,5 +247,6 @@ mod test {
             Some((&2, &3)),
             world.iter().filter_map(map!(Position {}, Speed {})).next()
         );
+        assert_eq!(1, world.iter().filter(tags!(Speed::as_ref())).count());
     }
 }
