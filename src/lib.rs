@@ -48,18 +48,28 @@ use std::collections::HashMap;
 
 pub use crate::map::*;
 
-/// An indexing operation that may or may not be successful
-pub trait TryRef<I> {
+/**
+An indexing operation that may or may not be successful
+
+You do not need to implement this trait for anything directly.
+The `component!` macro does it for you.
+*/
+pub trait Get<I> {
     /// The index output type
     type Output;
     /// Try to get a reference by index
-    fn try_ref(&self, index: I) -> Option<&Self::Output>;
+    fn get(&self, index: I) -> Option<&Self::Output>;
 }
 
-/// A mutable indexing operation that may or may not be successful
-pub trait TryMut<I>: TryRef<I> {
+/**
+A mutable indexing operation that may or may not be successful
+
+You do not need to implement this trait for anything directly.
+The `component!` macro does it for you.
+*/
+pub trait GetMut<I>: Get<I> {
     /// Try to get a mutable reference by index
-    fn try_mut(&mut self, index: I) -> Option<&mut Self::Output>;
+    fn get_mut(&mut self, index: I) -> Option<&mut Self::Output>;
 }
 
 /**
@@ -92,10 +102,23 @@ macro_rules! component {
                 pub fn new(val: $ty) -> Component {
                     Component::$id(val)
                 }
+                pub fn try_entity(entity: &Entity<Component>) -> Option<&$ty> {
+                    entity.get::<$id>()
+                }
+                pub fn try_entity_mut(entity: &Entity<Component>) -> Option<&mut $ty> {
+                    unsafe {
+                        (entity
+                            as *const Entity<Component>
+                            as *mut Entity<Component>
+                        ).as_mut()
+                    }
+                        .unwrap()
+                        .get_mut::<$id>()
+                }
             }
-            impl TryRef<$id> for Entity<Component> {
+            impl Get<$id> for Entity<Component> {
                 type Output = $ty;
-                fn try_ref(&self, index: $id) -> Option<&Self::Output> {
+                fn get(&self, index: $id) -> Option<&Self::Output> {
                     let s = format!("{:?}", index);
                     if let Some(index) = self.indices.get(&s).cloned() {
                         match &self.components[index] {
@@ -107,8 +130,8 @@ macro_rules! component {
                     }
                 }
             }
-            impl TryMut<$id> for Entity<Component> {
-                fn try_mut(&mut self, index: $id) -> Option<&mut Self::Output> {
+            impl GetMut<$id> for Entity<Component> {
+                fn get_mut(&mut self, index: $id) -> Option<&mut Self::Output> {
                     let s = format!("{:?}", index);
                     if let Some(index) = self.indices.get(&s).cloned() {
                         match &mut self.components[index] {
@@ -123,13 +146,13 @@ macro_rules! component {
             impl std::ops::Index<$id> for Entity<Component> {
                 type Output = $ty;
                 fn index(&self, index: $id) -> &Self::Output {
-                    self.try_ref(index)
+                    Get::get(self, index)
                         .unwrap_or_else(|| panic!("Unable to find component {:?}", stringify!($id)))
                 }
             }
             impl std::ops::IndexMut<$id> for Entity<Component> {
                 fn index_mut(&mut self, index: $id) -> &mut Self::Output {
-                    self.try_mut(index)
+                    GetMut::get_mut(self, index)
                         .unwrap_or_else(|| panic!("Unable to find component {:?}", stringify!($id)))
                 }
             }
@@ -158,7 +181,7 @@ An entity in the ECS
 The fields of this `struct` are public so that the `component!`
 macro works correctly. They should not be modified directly.
 */
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Entity<C> {
     /// The actual list of components
     pub components: Vec<C>,
@@ -176,20 +199,20 @@ impl<C> Entity<C> {
         }
     }
     /// Get an optional reference to a component's value
-    pub fn get<T>(&self) -> Option<&<Self as TryRef<T>>::Output>
+    pub fn get<T>(&self) -> Option<&<Self as Get<T>>::Output>
     where
         T: Default,
-        Self: TryRef<T>,
+        Self: Get<T>,
     {
-        self.try_ref(T::default())
+        Get::get(self, T::default())
     }
     /// Get an optional mutable reference to a component's value
-    pub fn get_mut<T>(&mut self) -> Option<&mut <Self as TryRef<T>>::Output>
+    pub fn get_mut<T>(&mut self) -> Option<&mut <Self as Get<T>>::Output>
     where
         T: Default,
-        Self: TryMut<T>,
+        Self: GetMut<T>,
     {
-        self.try_mut(T::default())
+        GetMut::get_mut(self, T::default())
     }
 }
 
@@ -211,7 +234,7 @@ impl<C: ToString> Entity<C> {
 }
 
 /**
-Creates an `Entity` with `struct`-like syntax.
+Creates an `Entity` with `struct`-like syntax
 
 # Example
 ```
