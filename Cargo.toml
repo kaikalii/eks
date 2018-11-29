@@ -3,5 +3,16 @@ name = "eks"
 version = "0.1.0"
 authors = ["Kai Schmidt <kaikaliischmidt@gmail.com>"]
 edition = "2018"
+readme = "readme.md"
+documentation = "docs.rs/eks"
+license = "MIT"
+repository = "https://github.com/kaikalii/eks"
+keywords = [
+    "ecs",
+    "entity",
+    "component",
+    "system"
+]
+categories = ["game-engines"]
 
 [dependencies]

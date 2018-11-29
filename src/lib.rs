@@ -7,6 +7,7 @@
 ```
 use eks::*;
 
+// Set up the components
 component! {
     Position: isize,
     Speed: isize,
@@ -28,7 +29,7 @@ fn main() {
         Special: (),
     });
 
-    // Move the entites forward one step
+    // Move the entities forward one step
     for (position, speed) in map_mut!(Position, Speed in world) {
         *position += *speed;
     }
