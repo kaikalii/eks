@@ -39,7 +39,7 @@ fn main() {
     let mut position_iter = world.iter().filter_map(map!(Position::as_ref()));
     assert_eq!(Some(&-1), position_iter.next());
     assert_eq!(Some(& 5), position_iter.next());
-    assert_eq!(1, world.iter().filter(tags!(Special {})).count())
+    assert_eq!(1, world.iter().filter(tags!(Special)).count())
 }
 ```
 */
@@ -272,6 +272,6 @@ mod test {
             Some((&2, &3)),
             world.iter().filter_map(map!(Position {}, Speed {})).next()
         );
-        assert_eq!(1, world.iter().filter(tags!(Speed::as_ref())).count());
+        assert_eq!(1, world.iter().filter(tags!(Speed)).count());
     }
 }

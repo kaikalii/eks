@@ -199,10 +199,10 @@ contains all spcified components.
 */
 #[macro_export]
 macro_rules! tags {
-    ($name:expr) => {
-        |entity| $name.try_entity(entity).is_some()
+    ($name:ident) => {
+        |entity| $name::as_ref().try_entity(entity).is_some()
     };
-    ($($name:expr),*) => {
-        |entity| $($name.try_entity(entity).is_some() &&)* true
+    ($($name:ident),*) => {
+        |entity| $($name::as_ref().try_entity(entity).is_some() &&)* true
     };
 }
