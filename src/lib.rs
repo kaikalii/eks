@@ -124,7 +124,7 @@ macro_rules! component {
                     if let Some(index) = self.indices.get(&s).cloned() {
                         match &self.components[index] {
                             Component::$id(ref val) => Some(val),
-                            _ => panic!("Entity::indices led to incorrect component")
+                            _ => unreachable!()
                         }
                     } else {
                         None
@@ -137,7 +137,7 @@ macro_rules! component {
                     if let Some(index) = self.indices.get(&s).cloned() {
                         match &mut self.components[index] {
                             Component::$id(ref mut val) => Some(val),
-                            _ => panic!("Entity::indices led to incorrect component")
+                            _ => unreachable!()
                         }
                     } else {
                         None
@@ -185,7 +185,7 @@ macro works correctly. They should not be modified directly.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Entity<C> {
     /// The id of the `Entity`
-    pub id: usize,
+    id: usize,
     /// The actual list of components
     pub components: Vec<C>,
     /// A map of formatted component names to indices in
@@ -201,6 +201,10 @@ impl<C> Entity<C> {
             components: Vec::new(),
             indices: HashMap::new(),
         }
+    }
+    /// Gets the `Entity`'s id
+    pub fn id(&self) -> usize {
+        self.id
     }
     /// Get an optional reference to a component's value
     pub fn get<T>(&self) -> Option<&<Self as Get<T>>::Output>
@@ -290,6 +294,10 @@ impl<C> World<C> {
         self.entities.insert(self.next_id, entity);
         self.next_id += 1;
     }
+    /// Removes the `Entity` with the given id
+    pub fn remove(&mut self, id: usize) -> Option<Entity<C>> {
+        self.entities.remove(&id)
+    }
     /// Iterates through all `Entities` in the `World`
     pub fn iter(&self) -> std::collections::btree_map::Values<usize, Entity<C>> {
         self.entities.values()
@@ -300,11 +308,55 @@ impl<C> World<C> {
     }
 }
 
+/// An iterator adapter that converts and `Entity` iterator to
+/// an iterator over the `Entity`'s ids
+pub struct Ids<C, E, I>
+where
+    E: std::borrow::Borrow<Entity<C>>,
+    I: Iterator<Item = E>,
+{
+    iter: I,
+    pd: std::marker::PhantomData<C>,
+}
+
+impl<C, E, I> Iterator for Ids<C, E, I>
+where
+    E: std::borrow::Borrow<Entity<C>>,
+    I: Iterator<Item = E>,
+{
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|e| e.borrow().id())
+    }
+}
+
+/// Adds adapter functions for `Entity` iterators
+pub trait EntityIterator<C, E>: Iterator<Item = E> + Sized
+where
+    E: std::borrow::Borrow<Entity<C>>,
+{
+    /// Converts and `Entity` iterator to
+    /// an iterator over the `Entity`'s ids
+    fn ids(self) -> Ids<C, E, Self> {
+        Ids {
+            iter: self,
+            pd: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<C, E, I> EntityIterator<C, E> for I
+where
+    I: Iterator<Item = E> + Sized,
+    E: std::borrow::Borrow<Entity<C>>,
+{
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     #[test]
-    fn compiles() {
+    fn works() {
         component! {
             Position: isize,
             Speed: isize,
@@ -326,5 +378,25 @@ mod test {
 
         assert_eq!(Some((&2, &3)), map!(Position, Speed in world).next());
         assert_eq!(1, tags!(Speed in world).count());
+    }
+    #[test]
+    fn ids() {
+        component!{
+            X: (),
+            Y: ()
+        }
+
+        let mut world = World::new();
+
+        world.insert(entity!{X: ()});
+        world.insert(entity!{X: ()});
+        world.insert(entity!{X: ()});
+
+        world.remove(2);
+
+        let mut ids = world.iter().ids();
+        assert_eq!(Some(1), ids.next());
+        assert_eq!(Some(3), ids.next());
+        assert_eq!(None, ids.next());
     }
 }
