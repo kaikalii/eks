@@ -197,15 +197,15 @@ impl<C> Entity<C> {
     /// Create a new `Entity`
     pub fn new() -> Entity<C> {
         Entity {
-            id: 0,
+            id:         0,
             components: Vec::new(),
-            indices: HashMap::new(),
+            indices:    HashMap::new(),
         }
     }
+
     /// Gets the `Entity`'s id
-    pub fn id(&self) -> usize {
-        self.id
-    }
+    pub fn id(&self) -> usize { self.id }
+
     /// Get an optional reference to a component's value
     pub fn get<T>(&self) -> Option<&<Self as Get<T>>::Output>
     where
@@ -214,6 +214,7 @@ impl<C> Entity<C> {
     {
         Get::get(self, T::default())
     }
+
     /// Get an optional mutable reference to a component's value
     pub fn get_mut<T>(&mut self) -> Option<&mut <Self as Get<T>>::Output>
     where
@@ -230,6 +231,7 @@ impl<C: ToString> Entity<C> {
         self.add(component);
         self
     }
+
     /// Add a component to the `Entity`
     pub fn add(&mut self, component: C) {
         let s = component.to_string();
@@ -277,7 +279,7 @@ macro_rules! entity {
 /// The world of the ECS
 pub struct World<C> {
     entities: BTreeMap<usize, Entity<C>>,
-    next_id: usize,
+    next_id:  usize,
 }
 
 impl<C> World<C> {
@@ -285,23 +287,25 @@ impl<C> World<C> {
     pub fn new() -> World<C> {
         World {
             entities: BTreeMap::new(),
-            next_id: 1,
+            next_id:  1,
         }
     }
+
     /// Add an `Entity` to the `World`
     pub fn insert(&mut self, mut entity: Entity<C>) {
         entity.id = self.next_id;
         self.entities.insert(self.next_id, entity);
         self.next_id += 1;
     }
+
     /// Removes the `Entity` with the given id
-    pub fn remove(&mut self, id: usize) -> Option<Entity<C>> {
-        self.entities.remove(&id)
-    }
+    pub fn remove(&mut self, id: usize) -> Option<Entity<C>> { self.entities.remove(&id) }
+
     /// Iterates through all `Entities` in the `World`
     pub fn iter(&self) -> std::collections::btree_map::Values<usize, Entity<C>> {
         self.entities.values()
     }
+
     /// Mutable iterates through all `Entities` in the `World`
     pub fn iter_mut(&mut self) -> std::collections::btree_map::ValuesMut<usize, Entity<C>> {
         self.entities.values_mut()
@@ -316,7 +320,7 @@ where
     I: Iterator<Item = E>,
 {
     iter: I,
-    pd: std::marker::PhantomData<C>,
+    pd:   std::marker::PhantomData<C>,
 }
 
 impl<C, E, I> Iterator for Ids<C, E, I>
@@ -325,9 +329,8 @@ where
     I: Iterator<Item = E>,
 {
     type Item = usize;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|e| e.borrow().id())
-    }
+
+    fn next(&mut self) -> Option<Self::Item> { self.iter.next().map(|e| e.borrow().id()) }
 }
 
 /// Adds adapter functions for `Entity` iterators
@@ -340,7 +343,7 @@ where
     fn ids(self) -> Ids<C, E, Self> {
         Ids {
             iter: self,
-            pd: std::marker::PhantomData,
+            pd:   std::marker::PhantomData,
         }
     }
 }
@@ -381,16 +384,16 @@ mod test {
     }
     #[test]
     fn ids() {
-        component!{
+        component! {
             X: (),
             Y: ()
         }
 
         let mut world = World::new();
 
-        world.insert(entity!{X: ()});
-        world.insert(entity!{X: ()});
-        world.insert(entity!{X: ()});
+        world.insert(entity! {X: ()});
+        world.insert(entity! {X: ()});
+        world.insert(entity! {X: ()});
 
         world.remove(2);
 

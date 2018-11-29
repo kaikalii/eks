@@ -1,4 +1,5 @@
-//! This simple example involves a world of particles that have both position and velocity
+//! This simple example involves a world of particles that have both position
+//! and velocity
 
 use eks::*;
 
@@ -15,9 +16,7 @@ fn particle(pos: f64, vel: f64, sprite: char) -> Entity<Component> {
 }
 
 /// Create some empty space
-fn space() -> Vec<char> {
-    (0..60).map(|_| ' ').collect()
-}
+fn space() -> Vec<char> { (0..60).map(|_| ' ').collect() }
 
 fn main() {
     // Create the world and add some particle entities
