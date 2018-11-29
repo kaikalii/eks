@@ -14,5 +14,6 @@ keywords = [
     "system"
 ]
 categories = ["game-engines"]
+description = "A simple and ergonomic entity-component-system"
 
 [dependencies]

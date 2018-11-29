@@ -1,7 +1,10 @@
-# Description
-`eks` is an entity-component system Rust crate with a focus on simplicity and ergonomics.
+[![Latest Version](https://img.shields.io/crates/v/eks.svg)](crates.io/crates/eks)
+[![Documentation](https://docs.rs/eks/badge.svg)](docs.rs/eks)
 
-# Usage
+# Description
+`eks` is an entity-component-system library with a focus on simplicity and ergonomics.
+
+# Getting Started
 To use `eks`, simply add the following to your `Cargo.toml`:
 
 ```toml
