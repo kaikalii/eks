@@ -6,7 +6,7 @@ use eks::*;
 component! {
     Pos: f64,
     Vel: f64,
-    Sprite: char
+    Sprite: char,
 }
 
 /// Function for initializing a particle

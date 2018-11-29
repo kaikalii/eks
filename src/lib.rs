@@ -10,7 +10,7 @@ use eks::*;
 component! {
     Position: isize,
     Speed: isize,
-    Special: ()
+    Special: (),
 }
 
 fn main() {
@@ -20,12 +20,12 @@ fn main() {
     // Add some entities
     world.push(entity! {
         Position: 0,
-        Speed: -1
+        Speed: -1,
     });
     world.push(entity! {
         Position: 2,
         Speed: 3,
-        Special: ()
+        Special: (),
     });
 
     // Move the entites forward one step
@@ -147,6 +147,9 @@ macro_rules! component {
             }
         }
     };
+    ($($id:ident: $ty:ty,)*) => {
+        component!{$($id: $ty),*}
+    };
 }
 
 /**
@@ -219,6 +222,9 @@ macro_rules! entity {
         $(entity.add($id::new($value));)*
         entity
     }};
+    ($($id:ident: $value:expr,)*) => {
+        entity!{$($id: $value),*}
+    };
 }
 
 /// The world of the ECS
@@ -255,17 +261,17 @@ mod test {
     fn compiles() {
         component! {
             Position: isize,
-            Speed: isize
+            Speed: isize,
         };
 
         let mut world = World::new();
 
         world.push(entity! {
-            Position: 5
+            Position: 5,
         });
         world.push(entity! {
             Position: -1,
-            Speed: 3
+            Speed: 3,
         });
 
         for (position, speed) in map_mut_checked!(Position, Speed in world) {
