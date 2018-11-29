@@ -2,6 +2,7 @@
 
 use eks::*;
 
+/// Set up components
 component! {
     Pos: f64,
     Vel: f64,
@@ -30,6 +31,7 @@ fn main() {
     for _ in 0..20 {
         // Ititialize some empty space for this iteration
         let mut space = space();
+
         // Put #'s where the particles are
         for (pos, sprite) in world
             .iter()
@@ -42,11 +44,13 @@ fn main() {
                 }
             }
         }
+
         // Draw the space
         for c in space {
             print!("{}", c);
         }
         println!();
+
         // Update the particle positions
         for (pos, vel) in world
             .iter_mut()
@@ -55,6 +59,7 @@ fn main() {
             *pos += *vel;
         }
 
+        // Wait half a second
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
 }
