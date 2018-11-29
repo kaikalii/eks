@@ -175,6 +175,22 @@ impl<C> Entity<C> {
             indices: HashMap::new(),
         }
     }
+    /// Get an optional reference to a component's value
+    pub fn get<T>(&self) -> Option<&<Self as TryRef<T>>::Output>
+    where
+        T: Default,
+        Self: TryRef<T>,
+    {
+        self.try_ref(T::default())
+    }
+    /// Get an optional mutable reference to a component's value
+    pub fn get_mut<T>(&mut self) -> Option<&mut <Self as TryRef<T>>::Output>
+    where
+        T: Default,
+        Self: TryMut<T>,
+    {
+        self.try_mut(T::default())
+    }
 }
 
 impl<C: ToString> Entity<C> {
@@ -211,7 +227,7 @@ fn main() {
         Name: "Dan".to_string(),
         Age: 26
     };
-    assert_eq!(26, dan[Age {}])
+    assert_eq!(Some(&26), dan.get::<Age>())
 }
 ```
 */

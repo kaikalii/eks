@@ -17,7 +17,7 @@ where
 {
     type Output = <Entity<C> as TryRef<T>>::Output;
     fn try_entity(entity: &Entity<C>) -> Option<&Self::Output> {
-        entity.try_ref(T::default())
+        entity.get::<T>()
     }
 }
 
@@ -39,7 +39,7 @@ where
     fn try_entity_mut(entity: &'a Entity<C>) -> Option<Self::Reference> {
         unsafe { (entity as *const Entity<C> as *mut Entity<C>).as_mut() }
             .unwrap()
-            .try_mut(T::default())
+            .get_mut::<T>()
     }
 }
 
