@@ -2,6 +2,37 @@
 
 /*!
 `eks` is an entity-component system crate with a focus on simplicity.
+
+# Example
+```
+use eks::*;
+
+component! {
+    Position: isize,
+    Speed: isize
+}
+
+fn main() {
+    // Create the world
+    let mut world = World::new();
+
+    // Add some entities
+    world.push(Entity::new().with(Position(0)).with(Speed(-1)));
+    world.push(Entity::new().with(Position(2)).with(Speed(3)));
+
+    // Move the entites forward one step
+    for (position, speed) in world.iter_mut().filter_map(
+        map_mut!(Position::as_mut(), Speed::as_ref())
+    ) {
+        *position += *speed;
+    }
+
+    // Check that it worked
+    let mut position_iter = world.iter().filter_map(map!(Position::as_ref()));
+    assert_eq!(Some(&-1), position_iter.next());
+    assert_eq!(Some(& 5), position_iter.next());
+}
+```
 */
 
 mod map;
@@ -38,7 +69,8 @@ component! {
     Position: isize,
     Size: usize,
     Speed: isize,
-    IsAlive: bool
+    IsAlive: bool,
+    Name: String
 }
 ```
 */

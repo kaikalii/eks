@@ -101,8 +101,8 @@ where
 }
 
 /**
-Creates a closure that returns an optional tuple of immutable
-references to the values specified by the given component names.
+Creates a closure that filters a tuple of immutable
+references to the specified components from an `Entity`.
 
 If only one component is specified, the optional return value
 will not be a tuple.
@@ -122,9 +122,8 @@ macro_rules! map {
 }
 
 /**
-Creates a closure that returns an optional tuple of immutable or
-mutable references to the values specified by the given component
-names.
+Creates a closure that filters a tuple of references to the
+specified components from an `Entity`.
 
 If only one component is specified, the optional return value
 will not be a tuple.
@@ -154,9 +153,8 @@ macro_rules! map_mut {
 }
 
 /**
-Creates a closure that returns an optional tuple of immutable or
-mutable references to the values specified by the given component
-names.
+Creates a closure that filters a tuple of references to the
+specified components from an `Entity`.
 
 If only one component is specified, the optional return value
 will not be a tuple.
