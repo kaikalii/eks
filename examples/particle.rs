@@ -26,6 +26,7 @@ fn main() {
     world.push(particle(8.0, 4.0, '@'));
     world.push(particle(30.0, -2.0, '%'));
     world.push(particle(50.0, -8.0, '$'));
+    world.push(particle(-30.0, 4.0, '&'));
 
     // Loop 20 times
     for _ in 0..20 {
