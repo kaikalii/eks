@@ -19,11 +19,11 @@ fn main() {
     let mut world = World::new();
 
     // Add some entities
-    world.push(entity! {
+    world.insert(entity! {
         Position: 0,
         Speed: -1,
     });
-    world.push(entity! {
+    world.insert(entity! {
         Position: 2,
         Speed: 3,
         Special: (),
@@ -45,7 +45,7 @@ fn main() {
 
 mod map;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub use crate::map::*;
 
@@ -184,6 +184,8 @@ macro works correctly. They should not be modified directly.
 */
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Entity<C> {
+    /// The id of the `Entity`
+    pub id: usize,
     /// The actual list of components
     pub components: Vec<C>,
     /// A map of formatted component names to indices in
@@ -195,6 +197,7 @@ impl<C> Entity<C> {
     /// Create a new `Entity`
     pub fn new() -> Entity<C> {
         Entity {
+            id: 0,
             components: Vec::new(),
             indices: HashMap::new(),
         }
@@ -269,28 +272,31 @@ macro_rules! entity {
 
 /// The world of the ECS
 pub struct World<C> {
-    entities: Vec<Entity<C>>,
+    entities: BTreeMap<usize, Entity<C>>,
+    next_id: usize,
 }
 
 impl<C> World<C> {
     /// Create a new `World`
     pub fn new() -> World<C> {
         World {
-            entities: Vec::new(),
+            entities: BTreeMap::new(),
+            next_id: 1,
         }
     }
-}
-
-impl<C> std::ops::Deref for World<C> {
-    type Target = Vec<Entity<C>>;
-    fn deref(&self) -> &Self::Target {
-        &self.entities
+    /// Add an `Entity` to the `World`
+    pub fn insert(&mut self, mut entity: Entity<C>) {
+        entity.id = self.next_id;
+        self.entities.insert(self.next_id, entity);
+        self.next_id += 1;
     }
-}
-
-impl<C> std::ops::DerefMut for World<C> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.entities
+    /// Iterates through all `Entities` in the `World`
+    pub fn iter(&self) -> std::collections::btree_map::Values<usize, Entity<C>> {
+        self.entities.values()
+    }
+    /// Mutable iterates through all `Entities` in the `World`
+    pub fn iter_mut(&mut self) -> std::collections::btree_map::ValuesMut<usize, Entity<C>> {
+        self.entities.values_mut()
     }
 }
 
@@ -306,10 +312,10 @@ mod test {
 
         let mut world = World::new();
 
-        world.push(entity! {
+        world.insert(entity! {
             Position: 5,
         });
-        world.push(entity! {
+        world.insert(entity! {
             Position: -1,
             Speed: 3,
         });
@@ -320,7 +326,5 @@ mod test {
 
         assert_eq!(Some((&2, &3)), map!(Position, Speed in world).next());
         assert_eq!(1, tags!(Speed in world).count());
-
-        *map_mut!(Position)(&mut world[0]).unwrap() = 10;
     }
 }

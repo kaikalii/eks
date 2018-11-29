@@ -22,11 +22,11 @@ fn space() -> Vec<char> {
 fn main() {
     // Create the world and add some particle entities
     let mut world = World::new();
-    world.push(particle(1.0, 3.0, '#'));
-    world.push(particle(8.0, 4.0, '@'));
-    world.push(particle(30.0, -2.0, '%'));
-    world.push(particle(50.0, -8.0, '$'));
-    world.push(particle(-30.0, 4.0, '&'));
+    world.insert(particle(1.0, 3.0, '#'));
+    world.insert(particle(8.0, 4.0, '@'));
+    world.insert(particle(30.0, -2.0, '%'));
+    world.insert(particle(50.0, -8.0, '$'));
+    world.insert(particle(-30.0, 4.0, '&'));
 
     // Loop 20 times
     for _ in 0..20 {
@@ -54,7 +54,7 @@ fn main() {
             *pos += *vel;
         }
 
-        // Wait half a second
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        // Wait for a quarter second
+        std::thread::sleep(std::time::Duration::from_millis(250));
     }
 }

@@ -28,11 +28,11 @@ fn main() {
     let mut world = World::new();
 
     // Add some entities
-    world.push(entity! {
+    world.insert(entity! {
         Position: 0,
         Speed: -1,
     });
-    world.push(entity! {
+    world.insert(entity! {
         Position: 2,
         Speed: 3,
         Special: (),
