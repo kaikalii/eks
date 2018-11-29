@@ -29,15 +29,15 @@ fn main() {
     });
 
     // Move the entites forward one step
-    for (position, speed) in world.iter_mut().filter_map(map_mut!(Position, Speed)) {
+    for (position, speed) in world.components_mut(map_mut!(Position, Speed)) {
         *position += *speed;
     }
 
     // Check that it worked
-    let mut position_iter = world.iter().filter_map(map!(Position));
+    let mut position_iter = world.components(map!(Position));
     assert_eq!(Some(&-1), position_iter.next());
     assert_eq!(Some(& 5), position_iter.next());
-    assert_eq!(1, world.iter().filter(tags!(Special)).count())
+    assert_eq!(1, world.entities_with(tags!(Special)).count())
 }
 ```
 */
@@ -212,6 +212,33 @@ impl<C> World<C> {
             entities: Vec::new(),
         }
     }
+    /// Equivalent to `World::iter().filter_map(f)`
+    pub fn components<'a, T, F>(
+        &'a self,
+        f: F,
+    ) -> std::iter::FilterMap<std::slice::Iter<'a, Entity<C>>, F>
+    where
+        F: Fn(&'a Entity<C>) -> Option<T>,
+    {
+        self.iter().filter_map(f)
+    }
+    /// Equivalent to `World::iter_mut().filter_map(f)`
+    pub fn components_mut<'a, T, F>(
+        &'a mut self,
+        f: F,
+    ) -> std::iter::FilterMap<std::slice::IterMut<'a, Entity<C>>, F>
+    where
+        F: Fn(&'a mut Entity<C>) -> Option<T>,
+    {
+        self.iter_mut().filter_map(f)
+    }
+    /// Equivalent to `World::iter().filter(f)`
+    pub fn entities_with<F>(&self, f: F) -> std::iter::Filter<std::slice::Iter<Entity<C>>, F>
+    where
+        F: Fn(&&Entity<C>) -> bool,
+    {
+        self.iter().filter(f)
+    }
 }
 
 impl<C> std::ops::Deref for World<C> {
@@ -247,18 +274,15 @@ mod test {
             Speed: 3
         });
 
-        for (position, speed) in world
-            .iter_mut()
-            .filter_map(map_mut_checked!(Position, Speed))
-        {
+        for (position, speed) in world.components_mut(map_mut!(Position, Speed)) {
             *position += *speed
         }
 
         assert_eq!(
             Some((&2, &3)),
-            world.iter().filter_map(map!(Position, Speed)).next()
+            world.components(map!(Position, Speed)).next()
         );
-        assert_eq!(1, world.iter().filter(tags!(Speed)).count());
+        assert_eq!(1, world.entities_with(tags!(Speed)).count());
 
         *map_mut!(Position)(&mut world[0]).unwrap() = 10;
     }
