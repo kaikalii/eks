@@ -2,39 +2,22 @@
 
 use crate::{Entity, TryMut, TryRef};
 
-/// An index wrapper that designates an immutable reference
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Ref<T>(pub T);
-
-/// An index wrapper that designates a mutable reference
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Mut<T>(pub T);
-
 /// An index wrapper for only immutable references
 pub trait Index<C> {
     /// The type of the component's value
     type Output;
     /// Try to get a reference from an `Entity`
-    fn try_entity(self, entity: &Entity<C>) -> Option<&Self::Output>;
-}
-
-impl<T, C> Index<C> for Ref<T>
-where
-    Entity<C>: TryRef<T>,
-{
-    type Output = <Entity<C> as TryRef<T>>::Output;
-    fn try_entity(self, entity: &Entity<C>) -> Option<&Self::Output> {
-        entity.try_ref(self.0)
-    }
+    fn try_entity(entity: &Entity<C>) -> Option<&Self::Output>;
 }
 
 impl<T, C> Index<C> for T
 where
+    T: Default,
     Entity<C>: TryRef<T>,
 {
     type Output = <Entity<C> as TryRef<T>>::Output;
-    fn try_entity(self, entity: &Entity<C>) -> Option<&Self::Output> {
-        entity.try_ref(self)
+    fn try_entity(entity: &Entity<C>) -> Option<&Self::Output> {
+        entity.try_ref(T::default())
     }
 }
 
@@ -42,61 +25,21 @@ where
 pub trait IndexMut<'a, C> {
     /// The reference to the component's value
     type Reference;
-    /// The inner type
-    type Inner;
     /// Try to get a reference from an `Entity`
-    fn try_entity_mut(self, entity: &'a Entity<C>) -> Option<Self::Reference>;
-    /// Get the inner value
-    fn inner(&self) -> &Self::Inner;
-}
-
-impl<'a, T, C> IndexMut<'a, C> for Ref<T>
-where
-    Entity<C>: TryRef<T>,
-    <Entity<C> as TryRef<T>>::Output: 'a,
-{
-    type Reference = &'a <Entity<C> as TryRef<T>>::Output;
-    type Inner = T;
-    fn try_entity_mut(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
-        entity.try_ref(self.0)
-    }
-    fn inner(&self) -> &Self::Inner {
-        &self.0
-    }
+    fn try_entity_mut(entity: &'a Entity<C>) -> Option<Self::Reference>;
 }
 
 impl<'a, T, C> IndexMut<'a, C> for T
 where
-    Entity<C>: TryRef<T>,
-    <Entity<C> as TryRef<T>>::Output: 'a,
-{
-    type Reference = &'a <Entity<C> as TryRef<T>>::Output;
-    type Inner = T;
-    fn try_entity_mut(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
-        entity.try_ref(self)
-    }
-    fn inner(&self) -> &Self::Inner {
-        self
-    }
-}
-
-impl<'a, T, C> IndexMut<'a, C> for Mut<T>
-where
+    T: Default,
     Entity<C>: TryMut<T>,
     <Entity<C> as TryRef<T>>::Output: 'a,
 {
     type Reference = &'a mut <Entity<C> as TryRef<T>>::Output;
-    type Inner = T;
-    fn try_entity_mut(self, entity: &'a Entity<C>) -> Option<Self::Reference> {
-        unsafe {
-            (entity as *const Entity<C> as *mut Entity<C>)
-                .as_mut()
-                .unwrap()
-        }
-        .try_mut(self.0)
-    }
-    fn inner(&self) -> &Self::Inner {
-        &self.0
+    fn try_entity_mut(entity: &'a Entity<C>) -> Option<Self::Reference> {
+        unsafe { (entity as *const Entity<C> as *mut Entity<C>).as_mut() }
+            .unwrap()
+            .try_mut(T::default())
     }
 }
 
@@ -109,12 +52,12 @@ will not be a tuple.
 */
 #[macro_export]
 macro_rules! map {
-    ($name:expr) => {
-        |entity| $name.try_entity(entity)
+    ($name:ident) => {
+        |entity| $name::try_entity(entity)
     };
-    ($($name:expr),*) => {
-        |entity| if $($name.try_entity(entity).is_some() &&)* true {
-            Some(($($name.try_entity(entity).unwrap()),*))
+    ($($name:ident),*) => {
+        |entity| if $($name::try_entity(entity).is_some() &&)* true {
+            Some(($($name::try_entity(entity).unwrap()),*))
         } else {
             None
         }
@@ -122,7 +65,7 @@ macro_rules! map {
 }
 
 /**
-Creates a closure that filters a tuple of references to the
+Creates a closure that filters a tuple of mutable references to the
 specified components from an `Entity`.
 
 If only one component is specified, the optional return value
@@ -132,7 +75,7 @@ will not be a tuple.
 
 It is considered undefined behavior to pass this macro multiple
 reference specifiers of the same component,
-i.e. `map_mut!(Foo::as_mut(), Foo::as_ref())`.
+i.e. `map_mut!(Foo, Foo)`.
 While this violates Rust's borrowing rules, it will still
 compile for reasons having to do with performance. If you want
 runtime checks that no two components are the same, use
@@ -140,12 +83,12 @@ runtime checks that no two components are the same, use
 */
 #[macro_export]
 macro_rules! map_mut {
-    ($name:expr) => {
-        |entity| $name.try_entity_mut(entity)
+    ($name:ident) => {
+        |entity| $name::try_entity_mut(entity)
     };
-    ($($name:expr),*) => {
-        |entity| if $($name.try_entity_mut(entity).is_some() &&)* true {
-            Some(($($name.try_entity_mut(entity).unwrap()),*))
+    ($($name:ident),*) => {
+        |entity| if $(map_mut!($name)(entity).is_some() &&)* true {
+            Some(($(map_mut!($name)(entity).unwrap()),*))
         } else {
             None
         }
@@ -153,7 +96,7 @@ macro_rules! map_mut {
 }
 
 /**
-Creates a closure that filters a tuple of references to the
+Creates a closure that filters a tuple of mutable references to the
 specified components from an `Entity`.
 
 If only one component is specified, the optional return value
@@ -165,27 +108,27 @@ it will likely be considerably slower than one generated by `map_mut!`.
 # Panics
 
 Panics if any two components specifiers are the same,
-i.e. `map_mut_checked!(Foo::as_mut(), Foo::as_ref())`.
+i.e. `map_mut_checked!(Foo, Foo)`.
 */
 #[macro_export]
 macro_rules! map_mut_checked {
-    ($name:expr) => {
-        |entity| $name.try_entity_mut(entity)
+    ($name:ident) => {
+        |entity| $name::try_entity_mut(entity)
     };
-    ($($name:expr),*) => {
+    ($($name:ident),*) => {
         |entity| {
             use std::collections::HashSet;
             let mut used: HashSet<String> = HashSet::new();
             $(
-                let s = format!("{:?}", $name.inner());
+                let s = format!("{:?}", $name::default());
                 if !used.contains(&s) {
                     used.insert(s);
                 } else {
                     panic!("{:?} is used twice in `map_mut_checked` in {} on line {}:{}", s, file!(), line!(), column!());
                 }
             )*
-            if $($name.try_entity_mut(entity).is_some() &&)* true {
-                Some(($($name.try_entity_mut(entity).unwrap()),*))
+            if $(map_mut_checked!($name)(entity).is_some() &&)* true {
+                Some(($(map_mut_checked!($name)(entity).unwrap()),*))
             } else {
                 None
             }
@@ -200,9 +143,9 @@ contains all spcified components.
 #[macro_export]
 macro_rules! tags {
     ($name:ident) => {
-        |entity| $name::as_ref().try_entity(entity).is_some()
+        |entity| $name::try_entity(entity).is_some()
     };
     ($($name:ident),*) => {
-        |entity| $($name::as_ref().try_entity(entity).is_some() &&)* true
+        |entity| $($name::try_entity(entity).is_some() &&)* true
     };
 }

@@ -33,10 +33,7 @@ fn main() {
         let mut space = space();
 
         // Put #'s where the particles are
-        for (pos, sprite) in world
-            .iter()
-            .filter_map(map!(Pos::as_ref(), Sprite::as_ref()))
-        {
+        for (pos, sprite) in world.iter().filter_map(map!(Pos, Sprite)) {
             if *pos >= 0.0 {
                 let upos = *pos as usize;
                 if upos < space.len() {
@@ -52,10 +49,7 @@ fn main() {
         println!();
 
         // Update the particle positions
-        for (pos, vel) in world
-            .iter_mut()
-            .filter_map(map_mut!(Pos::as_mut(), Vel::as_ref()))
-        {
+        for (pos, vel) in world.iter_mut().filter_map(map_mut!(Pos, Vel)) {
             *pos += *vel;
         }
 

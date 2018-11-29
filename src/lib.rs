@@ -29,14 +29,12 @@ fn main() {
     });
 
     // Move the entites forward one step
-    for (position, speed) in world.iter_mut().filter_map(
-        map_mut!(Position::as_mut(), Speed::as_ref())
-    ) {
+    for (position, speed) in world.iter_mut().filter_map(map_mut!(Position, Speed)) {
         *position += *speed;
     }
 
     // Check that it worked
-    let mut position_iter = world.iter().filter_map(map!(Position::as_ref()));
+    let mut position_iter = world.iter().filter_map(map!(Position));
     assert_eq!(Some(&-1), position_iter.next());
     assert_eq!(Some(& 5), position_iter.next());
     assert_eq!(1, world.iter().filter(tags!(Special)).count())
@@ -94,18 +92,6 @@ macro_rules! component {
                 pub fn new(val: $ty) -> Component {
                     Component::$id(val)
                 }
-                /// Create a new `Ref` indexer
-                pub fn as_ref() -> Ref<Self> {
-                    Ref($id {})
-                }
-                /// Create a new `Mut` indexer
-                pub fn as_mut() -> Mut<Self> {
-                    Mut($id {})
-                }
-            }
-            #[allow(non_snake_case)]
-            pub fn $id(val: $ty) -> Component {
-                $id::new(val)
             }
             impl TryRef<$id> for Entity<Component> {
                 type Output = $ty;
@@ -209,7 +195,7 @@ impl<C: ToString> Entity<C> {
 macro_rules! entity {
     ($($id:ident: $value:expr),*) => {{
         let mut entity = Entity::new();
-        $(entity.add($id($value));)*
+        $(entity.add($id::new($value));)*
         entity
     }};
 }
@@ -263,15 +249,17 @@ mod test {
 
         for (position, speed) in world
             .iter_mut()
-            .filter_map(map_mut!(Position::as_mut(), Speed {}))
+            .filter_map(map_mut_checked!(Position, Speed))
         {
             *position += *speed
         }
 
         assert_eq!(
             Some((&2, &3)),
-            world.iter().filter_map(map!(Position {}, Speed {})).next()
+            world.iter().filter_map(map!(Position, Speed)).next()
         );
         assert_eq!(1, world.iter().filter(tags!(Speed)).count());
+
+        *map_mut!(Position)(&mut world[0]).unwrap() = 10;
     }
 }
