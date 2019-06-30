@@ -42,6 +42,7 @@ fn main() {
 ```
 */
 
+pub mod example_component;
 mod map;
 
 use std::{
@@ -55,27 +56,32 @@ use uuid::Uuid;
 pub use crate::map::*;
 
 /**
-An indexing operation that may or may not be successful
+Trait for components
 
-You do not need to implement this trait for anything directly.
-The `component!` macro does it for you.
+You do not need to impliment this trait manually.
+The `component!` macro will do it for you.
 */
-pub trait Get<I> {
-    /// The index output type
-    type Output;
-    /// Try to get a reference by index
-    fn get(&self, index: I) -> Option<&Self::Output>;
-}
-
-/**
-A mutable indexing operation that may or may not be successful
-
-You do not need to implement this trait for anything directly.
-The `component!` macro does it for you.
-*/
-pub trait GetMut<I>: Get<I> {
-    /// Try to get a mutable reference by index
-    fn get_mut(&mut self, index: I) -> Option<&mut Self::Output>;
+pub trait Component {
+    /// The component's type
+    type Type;
+    /// The component's associated enum
+    type Enum;
+    /// Create a new component enum from the value
+    fn new(val: Self::Type) -> Self::Enum;
+    #[doc(hidden)]
+    const AS_STR: &'static str;
+    /// Try to get a reference to this component from an `Entity`
+    #[doc(hidden)]
+    fn try_entity(entity: &Entity<Self::Enum>) -> Option<&Self::Type>;
+    /// Try to get a mutable reference to this component from an `Entity`
+    #[doc(hidden)]
+    fn try_entity_mut(entity: &Entity<Self::Enum>) -> Option<&mut Self::Type>;
+    #[doc(hidden)]
+    fn enum_as_val(enm: &Self::Enum) -> &Self::Type;
+    #[doc(hidden)]
+    fn enum_as_val_mut(enm: &mut Self::Enum) -> &mut Self::Type;
+    #[doc(hidden)]
+    fn enum_to_val(enm: Self::Enum) -> Self::Type;
 }
 
 /**
@@ -85,150 +91,97 @@ For a usage example, check out [the component example module](example_component/
 */
 #[macro_export]
 macro_rules! component {
-    ($(#[$top_attr:meta])* $($(#unit #[$unit_attr:meta])* $(#variant #[$variant_attr:meta])* $id:ident: $ty:ty),*) => {
+    ($(#[$top_attr:meta])* $name:ident { $($(#unit #[$unit_attr:meta])* $(#variant #[$variant_attr:meta])* $id:ident: $ty:ty),* $(,)* }) => {
         $(
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
             $(#[$unit_attr])*
             pub struct $id {}
-            #[doc(hidden)]
-            #[allow(non_upper_case_globals)]
-            #[allow(dead_code)]
-            pub const $id: $id = $id {};
-            impl $id {
-                /// Create a new `Component`
-                pub fn new(val: $ty) -> Component {
-                    Component::$id(val)
+            impl eks::Component for $id {
+                const AS_STR: &'static str = stringify!($id);
+                type Type = $ty;
+                type Enum = $name;
+                fn enum_as_val(enm: &Self::Enum) -> &$ty {
+                    if let $name::$id(val) = enm {
+                        val
+                    } else {
+                        panic!(concat!("Component is not ", stringify!($id)))
+                    }
                 }
-                /// Try to get a reference to this `Component` from an `Entity`
+                fn enum_as_val_mut(enm: &mut Self::Enum) -> &mut $ty {
+                    if let $name::$id(val) = enm {
+                        val
+                    } else {
+                        panic!(concat!("Component is not ", stringify!($id)))
+                    }
+                }
+                fn enum_to_val(enm: Self::Enum) -> $ty {
+                    if let $name::$id(val) = enm {
+                        val
+                    } else {
+                        panic!(concat!("Component is not ", stringify!($id)))
+                    }
+                }
+                /// Create a new component
+                fn new(val: $ty) -> $name {
+                    $name::$id(val)
+                }
+                /// Try to get a reference to this component from an `Entity`
                 #[doc(hidden)]
-                pub fn try_entity(entity: &Entity<Component>) -> Option<&$ty> {
+                fn try_entity(entity: &eks::Entity<$name>) -> Option<&$ty> {
                     entity.get::<$id>()
                 }
-                /// Try to get a mutable reference to this `Component` from an `Entity`
+                /// Try to get a mutable reference to this component from an `Entity`
                 #[doc(hidden)]
-                pub fn try_entity_mut(entity: &Entity<Component>) -> Option<&mut $ty> {
+                fn try_entity_mut(entity: &eks::Entity<$name>) -> Option<&mut $ty> {
                     unsafe {
                         (entity
-                            as *const Entity<Component>
-                            as *mut Entity<Component>
+                            as *const eks::Entity<$name>
+                            as *mut eks::Entity<$name>
                         ).as_mut()
                     }
                         .unwrap()
                         .get_mut::<$id>()
                 }
             }
-            impl Get<$id> for Entity<Component> {
-                type Output = $ty;
-                fn get(&self, _: $id) -> Option<&Self::Output> {
-                    if let Some(component) = self.components.get(stringify!($id)) {
-                        match component {
-                            Component::$id(ref val) => Some(val),
-                            _ => unreachable!()
-                        }
-                    } else {
-                        None
-                    }
+            impl std::fmt::Display for $id {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    write!(f, stringify!($id))
                 }
             }
-            impl GetMut<$id> for Entity<Component> {
-                fn get_mut(&mut self, _: $id) -> Option<&mut Self::Output> {
-                    if let Some(component) = self.components.get_mut(stringify!($id)) {
-                        match component {
-                            Component::$id(val) => Some(val),
-                            _ => unreachable!()
-                        }
-                    } else {
-                        None
-                    }
-                }
-            }
-            impl std::ops::Index<$id> for Entity<Component> {
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals)]
+            #[allow(dead_code)]
+            pub const $id: $id = $id {};
+            impl std::ops::Index<$id> for eks::Entity<$name> {
                 type Output = $ty;
-                fn index(&self, index: $id) -> &Self::Output {
-                    Get::get(self, index)
+                fn index(&self, _: $id) -> &Self::Output {
+                    self.get::<$id>()
                         .unwrap_or_else(|| panic!("Unable to find component {:?}", stringify!($id)))
                 }
             }
-            impl std::ops::IndexMut<$id> for Entity<Component> {
-                fn index_mut(&mut self, index: $id) -> &mut Self::Output {
-                    GetMut::get_mut(self, index)
+            impl std::ops::IndexMut<$id> for eks::Entity<$name> {
+                fn index_mut(&mut self, _: $id) -> &mut Self::Output {
+                    self.get_mut::<$id>()
                         .unwrap_or_else(|| panic!("Unable to find component {:?}", stringify!($id)))
                 }
             }
         )*
         $(#[$top_attr])*
-        pub enum Component {
+        pub enum $name {
             $($(#[$variant_attr])* $id($ty)),*
         }
 
-        impl AsRef<&'static str> for Component {
+        impl AsRef<&'static str> for $name {
              fn as_ref(&self) -> &&'static str {
                 match self {
-                    $(Component::$id(_) => &stringify!($id)),*
+                    $($name::$id(_) => &stringify!($id)),*
                 }
             }
         }
     };
-    ($($id:ident: $ty:ty,)*) => {
-        component!{$($id: $ty),*}
+    ($(#[$top_attr:meta])* $($(#unit #[$unit_attr:meta])* $(#variant #[$variant_attr:meta])* $id:ident: $ty:ty),* $(,)*) => {
+        eks::component!{ $(#[$top_attr])* Comp { $( $(#unit #[$unit_attr])* $(#variant #[$variant_attr])* $id: $ty),* } }
     };
-}
-
-/**
-An example of the types generated by the `component!` macro
-
-Syntax is similar to a `struct`. For each component, a unit `struct` is created,
-and a variant is added to a `Component` `enum`.
-
-To add attributes or documentation to the generated `Component` `enum`, simple put them
-at the top of the macro body.
-
-Attributes or documentation for specific components must be put before the component
-declaration and marked with either `#unit` or `#variant`:
-* Attributes marked `#unit` will be applied to the generated unit struct for that component.
-* Attributes marked `#variant` will be applied to the component's variant in the generated `Component` `enum`
-
-The contents of this module were generated by the following code:
-```
-use eks::*;
-
-component! {
-    /// An component generated by the `component!` macro
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-
-    #unit /// A simple boolean component
-    #variant /// The `Bool` variant
-    Bool: bool,
-
-    #unit /// A simple integer component
-    #variant /// The `Number` variant
-    Number: isize,
-
-    #unit /// A simple flag component
-    #variant /// The `Flag` variant
-    Flag: ()
-}
-```
-*/
-pub mod example_component {
-    use super::*;
-
-    component! {
-        /// An component generated by the `component!` macro
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-
-        #unit /// A simple boolean component
-        #variant /// The `Bool` variant
-        Bool: bool,
-
-        #unit /// A simple integer component
-        #variant /// The `Number` variant
-        Number: isize,
-
-        #unit /// A simple flag component
-        #variant /// The `Flag` variant
-        Flag: ()
-    }
 }
 
 /// An `Entity` id
@@ -279,33 +232,63 @@ impl<C> Entity<C> {
         self.id
     }
     /// Get an optional reference to a component's value
-    pub fn get<T>(&self) -> Option<&<Self as Get<T>>::Output>
+    pub fn get<T>(&self) -> Option<&T::Type>
     where
-        T: Default,
-        Self: Get<T>,
+        T: Component<Enum = C>,
     {
-        Get::get(self, T::default())
+        if let Some(component) = self.components.get(T::AS_STR) {
+            Some(T::enum_as_val(component))
+        } else {
+            None
+        }
     }
     /// Get an optional mutable reference to a component's value
-    pub fn get_mut<T>(&mut self) -> Option<&mut <Self as Get<T>>::Output>
+    pub fn get_mut<T>(&mut self) -> Option<&mut T::Type>
     where
-        T: Default,
-        Self: GetMut<T>,
+        T: Component<Enum = C>,
     {
-        GetMut::get_mut(self, T::default())
+        if let Some(component) = self.components.get_mut(T::AS_STR) {
+            Some(T::enum_as_val_mut(component))
+        } else {
+            None
+        }
     }
-}
-
-impl<C: AsRef<&'static str>> Entity<C> {
-    /// Add a component to the `Entity`
-    pub fn with(mut self, component: C) -> Self {
-        self.add(component);
+    /// Check if the `Entity` has the `Component`
+    pub fn has<T>(&self) -> bool
+    where
+        T: Component<Enum = C>,
+    {
+        self.get::<T>().is_some()
+    }
+    /// Add a `Component` to the `Entity`
+    pub fn add<T>(&mut self, value: T::Type) -> Option<T::Type>
+    where
+        T: Component<Enum = C>,
+    {
+        if let Some(component) = self.components.insert(T::AS_STR, T::new(value)) {
+            Some(T::enum_to_val(component))
+        } else {
+            None
+        }
+    }
+    /// Add a `Component` to the `Entity`
+    pub fn with<T>(mut self, value: T::Type) -> Self
+    where
+        T: Component<Enum = C>,
+    {
+        self.add::<T>(value);
         self
     }
-    /// Add a component to the `Entity`
-    pub fn add(&mut self, component: C) {
-        let s = component.as_ref();
-        self.components.insert(s, component);
+    /// Remove a `Component` from the `Entity`
+    pub fn remove<T>(&mut self) -> Option<T::Type>
+    where
+        T: Component<Enum = C>,
+    {
+        if let Some(component) = self.components.remove(T::AS_STR) {
+            Some(T::enum_to_val(component))
+        } else {
+            None
+        }
     }
 }
 
@@ -314,7 +297,7 @@ Creates an `Entity` with `struct`-like syntax
 
 # Example
 ```
-use eks::*;
+use eks::{component, entity};
 
 component! {
     Name: String,
@@ -333,12 +316,12 @@ fn main() {
 #[macro_export]
 macro_rules! entity {
     ($($id:ident: $value:expr),*) => {{
-        let mut entity = Entity::new();
-        $(entity.add($id::new($value));)*
+        let mut entity = eks::Entity::new();
+        $(entity.add::<$id>($value);)*
         entity
     }};
     ($($id:ident: $value:expr,)*) => {
-        entity!{$($id: $value),*}
+        eks::entity!{$($id: $value),*}
     };
 }
 
@@ -372,17 +355,12 @@ impl<C> World<C> {
     pub fn iter_mut(&mut self) -> std::collections::hash_map::ValuesMut<Id, Entity<C>> {
         self.entities.values_mut()
     }
-}
-
-impl<C> Get<Id> for World<C> {
-    type Output = Entity<C>;
-    fn get(&self, id: Id) -> Option<&Self::Output> {
+    /// Get a reference to the `Entity` with the given `Id`
+    pub fn get(&self, id: Id) -> Option<&Entity<C>> {
         self.entities.get(&id)
     }
-}
-
-impl<C> GetMut<Id> for World<C> {
-    fn get_mut(&mut self, id: Id) -> Option<&mut Self::Output> {
+    /// Get a mutable reference to the `Entity` with the given `Id`
+    pub fn get_mut(&mut self, id: Id) -> Option<&mut Entity<C>> {
         self.entities.get_mut(&id)
     }
 }
@@ -448,7 +426,10 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    mod eks {
+        pub use crate::*;
+    }
+    use eks::*;
     #[test]
     fn works() {
         component! {

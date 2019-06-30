@@ -22,12 +22,12 @@ return value will not be a tuple.
 */
 #[macro_export]
 macro_rules! map {
-    ($($name:ident),* in $world:expr) => {
-        $world.iter().filter_map(map!($($name),*))
+    ($($id:ident),* in $world:expr) => {
+        $world.iter().filter_map(map!($($id),*))
     };
-    ($($name:ident),*) => {
-        |entity| if $($name::try_entity(entity).is_some() &&)* true {
-            Some(($($name::try_entity(entity).unwrap()),*))
+    ($($id:ident),*) => {
+        |entity| if $(<$id as eks::Component>::try_entity(entity).is_some() &&)* true {
+            Some(($(<$id as eks::Component>::try_entity(entity).unwrap()),*))
         } else {
             None
         }
@@ -67,15 +67,15 @@ you want runtime checks that no two components are the same, use
 */
 #[macro_export]
 macro_rules! map_mut {
-    ($name:ident) => {
-        |entity| $name::try_entity_mut(entity)
+    ($id:ident) => {
+        |entity| <$id as eks::Component>::try_entity_mut(entity)
     };
-    ($($name:ident),* in $world:expr) => {
-        $world.iter_mut().filter_map(map_mut!($($name),*))
+    ($($id:ident),* in $world:expr) => {
+        $world.iter_mut().filter_map(map_mut!($($id),*))
     };
-    ($($name:ident),*) => {
-        |entity| if $($name::try_entity_mut(entity).is_some() &&)* true {
-            Some(($($name::try_entity_mut(entity).unwrap()),*))
+    ($($id:ident),*) => {
+        |entity| if $(<$id as eks::Component>::try_entity_mut(entity).is_some() &&)* true {
+            Some(($(<$id as eks::Component>::try_entity_mut(entity).unwrap()),*))
         } else {
             None
         }
@@ -114,23 +114,23 @@ i.e. `map_mut_checked!(Foo, Foo)`.
 */
 #[macro_export]
 macro_rules! map_mut_checked {
-    ($($name:ident),* in $world:expr) => {
-        $world.iter_mut().filter_map(map_mut_checked!($($name),*))
+    ($($id:ident),* in $world:expr) => {
+        $world.iter_mut().filter_map(map_mut_checked!($($id),*))
     };
-    ($($name:ident),*) => {
+    ($($id:ident),*) => {
         |entity| {
             use std::collections::HashSet;
             let mut used: HashSet<&'static str> = HashSet::new();
             $(
-                let s = stringify!($name);
+                let s = stringify!($id);
                 if !used.contains(&s) {
                     used.insert(s);
                 } else {
                     panic!("{:?} is used twice in `map_mut_checked` in {} on line {}:{}", s, file!(), line!(), column!());
                 }
             )*
-            if $($name::try_entity_mut(entity).is_some() &&)* true {
-                Some(($($name::try_entity_mut(entity).unwrap()),*))
+            if $(<$id as eks::Component>::try_entity_mut(entity).is_some() &&)* true {
+                Some(($(<$id as eks::Component>::try_entity_mut(entity).unwrap()),*))
             } else {
                 None
             }
@@ -156,10 +156,10 @@ indicating whether or not it has all the specified components.
 */
 #[macro_export]
 macro_rules! tags {
-    ($($name:ident),* in $world:expr) => {
-        $world.iter().filter(tags!($($name),*))
+    ($($id:ident),* in $world:expr) => {
+        $world.iter().filter(tags!($($id),*))
     };
-    ($($name:ident),*) => {
-        |entity| $($name::try_entity(entity).is_some() &&)* true
+    ($($id:ident),*) => {
+        |entity| $(<$id as eks::Component>::try_entity(entity).is_some() &&)* true
     };
 }

@@ -1,17 +1,19 @@
 //! This simple example involves a world of particles that have both position
 //! and velocity
 
-use eks::*;
+use eks::{component, entity, map, map_mut, Entity, World};
 
 // Set up components
 component! {
-    Pos: f64,
-    Vel: f64,
-    Sprite: char,
+    Particle {
+        Pos: f64,
+        Vel: f64,
+        Sprite: char,
+    }
 }
 
 /// Function for initializing a particle
-fn particle(pos: f64, vel: f64, sprite: char) -> Entity<Component> {
+fn particle(pos: f64, vel: f64, sprite: char) -> Entity<Particle> {
     entity! { Pos: pos, Vel: vel, Sprite: sprite }
 }
 
