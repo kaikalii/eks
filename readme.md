@@ -28,11 +28,11 @@ fn main() {
     let mut world = World::new();
 
     // Add some entities
-    world.insert(entity! {
+    let a = world.insert(entity! {
         Position: 0,
         Speed: -1,
     });
-    world.insert(entity! {
+    let b = world.insert(entity! {
         Position: 2,
         Speed: 3,
         Special: (),
@@ -44,9 +44,8 @@ fn main() {
     }
 
     // Check that it worked
-    let mut position_iter = map!(Position in world);
-    assert_eq!(Some(&-1), position_iter.next());
-    assert_eq!(Some(& 5), position_iter.next());
+    assert_eq!(-1, world[a][Position]);
+    assert_eq!( 5, world[b][Position]);
     assert_eq!(1, tags!(Special in world).count())
 }
 ```
