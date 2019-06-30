@@ -15,11 +15,6 @@ fn particle(pos: f64, vel: f64, sprite: char) -> Entity<Component> {
     entity! { Pos: pos, Vel: vel, Sprite: sprite }
 }
 
-/// Create some empty space
-fn space() -> Vec<char> {
-    (0..60).map(|_| ' ').collect()
-}
-
 fn main() {
     // Create the world and add some particle entities
     let mut world = World::new();
@@ -32,9 +27,9 @@ fn main() {
     // Loop 20 times
     for _ in 0..20 {
         // Ititialize some empty space for this iteration
-        let mut space = space();
+        let mut space: Vec<char> = (0..60).map(|_| ' ').collect();
 
-        // Put #'s where the particles are
+        // Put sprites where the particles are
         for (pos, sprite) in map!(Pos, Sprite in world) {
             if *pos >= 0.0 {
                 let upos = *pos as usize;

@@ -109,8 +109,8 @@ macro_rules! component {
             impl Get<$id> for Entity<Component> {
                 type Output = $ty;
                 fn get(&self, _: $id) -> Option<&Self::Output> {
-                    if let Some(index) = self.indices.get(stringify!($id)).cloned() {
-                        match &self.components[index] {
+                    if let Some(component) = self.components.get(stringify!($id)) {
+                        match component {
                             Component::$id(ref val) => Some(val),
                             _ => unreachable!()
                         }
@@ -121,9 +121,9 @@ macro_rules! component {
             }
             impl GetMut<$id> for Entity<Component> {
                 fn get_mut(&mut self, _: $id) -> Option<&mut Self::Output> {
-                    if let Some(index) = self.indices.get(stringify!($id)).cloned() {
-                        match &mut self.components[index] {
-                            Component::$id(ref mut val) => Some(val),
+                    if let Some(component) = self.components.get_mut(stringify!($id)) {
+                        match component {
+                            Component::$id(val) => Some(val),
                             _ => unreachable!()
                         }
                     } else {
@@ -227,13 +227,10 @@ An entity in the ECS
 pub struct Entity<C> {
     /// The id of the `Entity`
     id: usize,
-    /// The actual list of components
-    #[doc(hidden)]
-    pub components: Vec<C>,
     /// A map of formatted component names to indices in
     /// the `components`
     #[doc(hidden)]
-    pub indices: HashMap<&'static str, usize>,
+    pub components: HashMap<&'static str, C>,
 }
 
 impl<C> Entity<C> {
@@ -241,8 +238,7 @@ impl<C> Entity<C> {
     pub fn new() -> Entity<C> {
         Entity {
             id: 0,
-            components: Vec::new(),
-            indices: HashMap::new(),
+            components: HashMap::new(),
         }
     }
 
@@ -280,10 +276,7 @@ impl<C: AsRef<&'static str>> Entity<C> {
     /// Add a component to the `Entity`
     pub fn add(&mut self, component: C) {
         let s = component.as_ref();
-        if !self.indices.contains_key(s) {
-            self.indices.insert(s, self.components.len());
-            self.components.push(component);
-        }
+        self.components.insert(s, component);
     }
 }
 
