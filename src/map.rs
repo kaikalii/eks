@@ -120,9 +120,9 @@ macro_rules! map_mut_checked {
     ($($name:ident),*) => {
         |entity| {
             use std::collections::HashSet;
-            let mut used: HashSet<String> = HashSet::new();
+            let mut used: HashSet<&'static str> = HashSet::new();
             $(
-                let s = format!("{:?}", $name::default());
+                let s = stringify!($name);
                 if !used.contains(&s) {
                     used.insert(s);
                 } else {
