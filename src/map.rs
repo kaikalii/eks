@@ -1,3 +1,14 @@
+#[macro_export]
+#[doc(hidden)]
+macro_rules! require_rayon {
+    ($expr:expr) => {{
+        #[cfg(not(feature = "f_rayon"))]
+        compile_error!(r#"You must enable the eks's "f_rayon" feature to use parallel iteration"#);
+        #[cfg(feature = "f_rayon")]
+        $expr
+    }};
+}
+
 /**
 Macro for immutably accessing components
 
@@ -24,6 +35,13 @@ return value will not be a tuple.
 macro_rules! map {
     ($($id:ident),* in $world:expr) => {
         $world.iter().filter_map(map!($($id),*))
+    };
+    ($($id:ident),* in par $world:expr) => {
+        eks::require_rayon!(
+            rayon::iter::IntoParallelRefIterator::par_iter(&$world)
+                .map(|(_, entity)| entity)
+                .filter_map(map!($($id),*))
+        )
     };
     ($($id:ident),*) => {
         |entity| if $(<$id as eks::Component>::try_entity(entity).is_some() &&)* true {
@@ -67,11 +85,15 @@ you want runtime checks that no two components are the same, use
 */
 #[macro_export]
 macro_rules! map_mut {
-    ($id:ident) => {
-        |entity| <$id as eks::Component>::try_entity_mut(entity)
-    };
     ($($id:ident),* in $world:expr) => {
         $world.iter_mut().filter_map(map_mut!($($id),*))
+    };
+    ($($id:ident),* in par $world:expr) => {
+        eks::require_rayon!(
+            rayon::iter::IntoParallelRefMutIterator::par_iter_mut(&mut $world)
+                .map(|(_, entity)| entity)
+                .filter_map(map_mut!($($id),*))
+        )
     };
     ($($id:ident),*) => {
         |entity| if $(<$id as eks::Component>::try_entity_mut(entity).is_some() &&)* true {
@@ -117,6 +139,13 @@ macro_rules! map_mut_checked {
     ($($id:ident),* in $world:expr) => {
         $world.iter_mut().filter_map(map_mut_checked!($($id),*))
     };
+    ($($id:ident),* in par $world:expr) => {
+        eks::require_rayon!(
+            rayon::iter::IntoParallelRefMutIterator::par_iter_mut(&mut $world)
+                .map(|(_, entity)| entity)
+                .filter_map(map_mut_checked!($($id),*))
+        )
+    };
     ($($id:ident),*) => {
         |entity| {
             use std::collections::HashSet;
@@ -158,6 +187,13 @@ indicating whether or not it has all the specified components.
 macro_rules! tags {
     ($($id:ident),* in $world:expr) => {
         $world.iter().filter(tags!($($id),*))
+    };
+    ($($id:ident),* in par $world:expr) => {
+        eks::require_rayon!(
+            rayon::iter::IntoParallelRefIterator::par_iter(&$world)
+                .map(|(_, entity)| entity)
+                .filter(tags!($($id),*))
+        )
     };
     ($($id:ident),*) => {
         |entity| $(<$id as eks::Component>::try_entity(entity).is_some() &&)* true

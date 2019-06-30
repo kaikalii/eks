@@ -1,20 +1,29 @@
-[package]
-name = "eks"
-version = "0.1.0"
-authors = ["Kai Schmidt <kaikaliischmidt@gmail.com>"]
-edition = "2018"
-readme = "readme.md"
-documentation = "docs.rs/eks"
-license = "MIT"
-repository = "https://github.com/kaikalii/eks"
-keywords = [
-    "ecs",
-    "entity",
-    "component",
-    "system"
-]
-categories = ["game-engines"]
-description = "A simple and ergonomic entity-component-system"
+[dependencies.rayon]
+optional = true
+version = '1.1.0'
 
-[dependencies]
-uuid = { version = "*", features = ["v4"] }
+[dependencies.uuid]
+features = ['v4']
+version = '0.7.4'
+
+[features]
+default = ['f_rayon']
+f_rayon = ['rayon']
+
+[package]
+authors = ['Kai Schmidt <kaikaliischmidt@gmail.com>']
+categories = ['game-engines']
+description = 'A simple and ergonomic entity-component-system'
+documentation = 'docs.rs/eks'
+edition = '2018'
+keywords = [
+    'ecs',
+    'entity',
+    'component',
+    'system',
+]
+license = 'MIT'
+name = 'eks'
+readme = 'readme.md'
+repository = 'https://github.com/kaikalii/eks'
+version = '0.1.0'

@@ -3,6 +3,9 @@
 /*!
 `eks` is an entity-component system crate with a focus on simplicity and ergonomics.
 
+Features:
+    * `f_rayon` Use rayon parallel iterators
+
 # Example
 ```
 use eks::*;
@@ -51,6 +54,8 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+#[cfg(feature = "f_rayon")]
+use rayon::prelude::*;
 use uuid::Uuid;
 
 pub use crate::map::*;
@@ -380,6 +385,30 @@ impl<C> IndexMut<Id> for World<C> {
     }
 }
 
+#[cfg(feature = "f_rayon")]
+impl<'a, C> IntoParallelIterator for &'a World<C>
+where
+    C: Sync,
+{
+    type Item = <&'a HashMap<Id, Entity<C>> as IntoIterator>::Item;
+    type Iter = rayon::collections::hash_map::Iter<'a, Id, Entity<C>>;
+    fn into_par_iter(self) -> Self::Iter {
+        self.entities.into_par_iter()
+    }
+}
+
+#[cfg(feature = "f_rayon")]
+impl<'a, C> IntoParallelIterator for &'a mut World<C>
+where
+    C: Send,
+{
+    type Item = <&'a mut HashMap<Id, Entity<C>> as IntoIterator>::Item;
+    type Iter = rayon::collections::hash_map::IterMut<'a, Id, Entity<C>>;
+    fn into_par_iter(self) -> Self::Iter {
+        (&mut self.entities).into_par_iter()
+    }
+}
+
 /// An iterator adapter that converts and `Entity` iterator to
 /// an iterator over the `Entity`s' ids
 pub struct Ids<C, E, I>
@@ -453,5 +482,15 @@ mod test {
 
         assert_eq!(Some((&2, &3)), map!(Position, Speed in world).next());
         assert_eq!(1, tags!(Speed in world).count());
+    }
+    #[test]
+    #[cfg(feature = "f_rayon")]
+    fn rayon() {
+        component! { Foo: (), Bar: () }
+        let mut world = World::new();
+        for _ in 0..100 {
+            world.insert(entity!(Foo: ()));
+        }
+        assert_eq!(100, tags!(Foo in par world).count());
     }
 }
