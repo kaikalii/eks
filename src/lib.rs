@@ -19,11 +19,11 @@ fn main() {
     let mut world = World::new();
 
     // Add some entities
-    world.insert(entity! {
+    let a = world.insert(entity! {
         Position: 0,
         Speed: -1,
     });
-    world.insert(entity! {
+    let b = world.insert(entity! {
         Position: 2,
         Speed: 3,
         Special: (),
@@ -35,9 +35,8 @@ fn main() {
     }
 
     // Check that it worked
-    let mut position_iter = map!(Position in world);
-    assert_eq!(Some(&-1), position_iter.next());
-    assert_eq!(Some(& 5), position_iter.next());
+    assert_eq!(-1, world[a][Position]);
+    assert_eq!( 5, world[b][Position]);
     assert_eq!(1, tags!(Special in world).count())
 }
 ```
@@ -45,7 +44,13 @@ fn main() {
 
 mod map;
 
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::HashMap,
+    fmt,
+    ops::{Index, IndexMut},
+};
+
+use uuid::Uuid;
 
 pub use crate::map::*;
 
@@ -85,6 +90,10 @@ macro_rules! component {
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
             $(#[$unit_attr])*
             pub struct $id {}
+            #[doc = "A const for indexing `Entity`s"]
+            #[allow(non_upper_case_globals)]
+            #[allow(dead_code)]
+            pub const $id: $id = $id {};
             impl $id {
                 /// Create a new `Component`
                 pub fn new(val: $ty) -> Component {
@@ -220,13 +229,35 @@ pub mod example_component {
     }
 }
 
+/// An `Entity` id
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Id(Uuid);
+
+impl Id {
+    fn new() -> Id {
+        Id(Uuid::new_v4())
+    }
+}
+
+impl fmt::Debug for Id {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        <Uuid as fmt::Debug>::fmt(&self.0, f)
+    }
+}
+
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        <Uuid as fmt::Display>::fmt(&self.0, f)
+    }
+}
+
 /**
 An entity in the ECS
 */
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entity<C> {
     /// The id of the `Entity`
-    id: usize,
+    id: Id,
     /// A map of formatted component names to indices in
     /// the `components`
     #[doc(hidden)]
@@ -237,16 +268,14 @@ impl<C> Entity<C> {
     /// Create a new `Entity`
     pub fn new() -> Entity<C> {
         Entity {
-            id: 0,
+            id: Id::new(),
             components: HashMap::new(),
         }
     }
-
     /// Gets the `Entity`'s id
-    pub fn id(&self) -> usize {
+    pub fn id(&self) -> Id {
         self.id
     }
-
     /// Get an optional reference to a component's value
     pub fn get<T>(&self) -> Option<&<Self as Get<T>>::Output>
     where
@@ -255,7 +284,6 @@ impl<C> Entity<C> {
     {
         Get::get(self, T::default())
     }
-
     /// Get an optional mutable reference to a component's value
     pub fn get_mut<T>(&mut self) -> Option<&mut <Self as Get<T>>::Output>
     where
@@ -272,7 +300,6 @@ impl<C: AsRef<&'static str>> Entity<C> {
         self.add(component);
         self
     }
-
     /// Add a component to the `Entity`
     pub fn add(&mut self, component: C) {
         let s = component.as_ref();
@@ -315,44 +342,66 @@ macro_rules! entity {
 
 /// The world of the ECS
 pub struct World<C> {
-    entities: BTreeMap<usize, Entity<C>>,
-    next_id: usize,
+    entities: HashMap<Id, Entity<C>>,
 }
 
 impl<C> World<C> {
     /// Create a new `World`
     pub fn new() -> World<C> {
         World {
-            entities: BTreeMap::new(),
-            next_id: 1,
+            entities: HashMap::new(),
         }
     }
-
     /// Add an `Entity` to the `World`
-    pub fn insert(&mut self, mut entity: Entity<C>) {
-        entity.id = self.next_id;
-        self.entities.insert(self.next_id, entity);
-        self.next_id += 1;
+    pub fn insert(&mut self, entity: Entity<C>) -> Id {
+        let id = entity.id();
+        self.entities.insert(id, entity);
+        id
     }
-
     /// Removes the `Entity` with the given id
-    pub fn remove(&mut self, id: usize) -> Option<Entity<C>> {
+    pub fn remove(&mut self, id: Id) -> Option<Entity<C>> {
         self.entities.remove(&id)
     }
-
     /// Iterates through all `Entities` in the `World`
-    pub fn iter(&self) -> std::collections::btree_map::Values<usize, Entity<C>> {
+    pub fn iter(&self) -> std::collections::hash_map::Values<Id, Entity<C>> {
         self.entities.values()
     }
-
     /// Mutable iterates through all `Entities` in the `World`
-    pub fn iter_mut(&mut self) -> std::collections::btree_map::ValuesMut<usize, Entity<C>> {
+    pub fn iter_mut(&mut self) -> std::collections::hash_map::ValuesMut<Id, Entity<C>> {
         self.entities.values_mut()
     }
 }
 
+impl<C> Get<Id> for World<C> {
+    type Output = Entity<C>;
+    fn get(&self, id: Id) -> Option<&Self::Output> {
+        self.entities.get(&id)
+    }
+}
+
+impl<C> GetMut<Id> for World<C> {
+    fn get_mut(&mut self, id: Id) -> Option<&mut Self::Output> {
+        self.entities.get_mut(&id)
+    }
+}
+
+impl<C> Index<Id> for World<C> {
+    type Output = Entity<C>;
+    fn index(&self, id: Id) -> &Self::Output {
+        self.get(id)
+            .unwrap_or_else(|| panic!("Unable to find entity with id: {}", id))
+    }
+}
+
+impl<C> IndexMut<Id> for World<C> {
+    fn index_mut(&mut self, id: Id) -> &mut Self::Output {
+        self.get_mut(id)
+            .unwrap_or_else(|| panic!("Unable to find entity with id: {}", id))
+    }
+}
+
 /// An iterator adapter that converts and `Entity` iterator to
-/// an iterator over the `Entity`'s ids
+/// an iterator over the `Entity`s' ids
 pub struct Ids<C, E, I>
 where
     E: std::borrow::Borrow<Entity<C>>,
@@ -367,8 +416,7 @@ where
     E: std::borrow::Borrow<Entity<C>>,
     I: Iterator<Item = E>,
 {
-    type Item = usize;
-
+    type Item = Id;
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|e| e.borrow().id())
     }
@@ -422,25 +470,5 @@ mod test {
 
         assert_eq!(Some((&2, &3)), map!(Position, Speed in world).next());
         assert_eq!(1, tags!(Speed in world).count());
-    }
-    #[test]
-    fn ids() {
-        component! {
-            X: (),
-            Y: ()
-        }
-
-        let mut world = World::new();
-
-        world.insert(entity! {X: ()});
-        world.insert(entity! {X: ()});
-        world.insert(entity! {X: ()});
-
-        world.remove(2);
-
-        let mut ids = world.iter().ids();
-        assert_eq!(Some(1), ids.next());
-        assert_eq!(Some(3), ids.next());
-        assert_eq!(None, ids.next());
     }
 }

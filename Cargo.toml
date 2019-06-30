@@ -17,3 +17,4 @@ categories = ["game-engines"]
 description = "A simple and ergonomic entity-component-system"
 
 [dependencies]
+uuid = { version = "*", features = ["v4"] }
