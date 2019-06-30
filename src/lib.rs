@@ -178,18 +178,17 @@ macro_rules! component {
 
 /**
 An entity in the ECS
-
-The fields of this `struct` are public so that the `component!`
-macro works correctly. They should not be modified directly.
 */
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Entity<C> {
     /// The id of the `Entity`
     id: usize,
     /// The actual list of components
+    #[doc(hidden)]
     pub components: Vec<C>,
     /// A map of formatted component names to indices in
     /// the `components`
+    #[doc(hidden)]
     pub indices: HashMap<String, usize>,
 }
 
