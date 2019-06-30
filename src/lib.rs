@@ -197,14 +197,16 @@ impl<C> Entity<C> {
     /// Create a new `Entity`
     pub fn new() -> Entity<C> {
         Entity {
-            id:         0,
+            id: 0,
             components: Vec::new(),
-            indices:    HashMap::new(),
+            indices: HashMap::new(),
         }
     }
 
     /// Gets the `Entity`'s id
-    pub fn id(&self) -> usize { self.id }
+    pub fn id(&self) -> usize {
+        self.id
+    }
 
     /// Get an optional reference to a component's value
     pub fn get<T>(&self) -> Option<&<Self as Get<T>>::Output>
@@ -279,7 +281,7 @@ macro_rules! entity {
 /// The world of the ECS
 pub struct World<C> {
     entities: BTreeMap<usize, Entity<C>>,
-    next_id:  usize,
+    next_id: usize,
 }
 
 impl<C> World<C> {
@@ -287,7 +289,7 @@ impl<C> World<C> {
     pub fn new() -> World<C> {
         World {
             entities: BTreeMap::new(),
-            next_id:  1,
+            next_id: 1,
         }
     }
 
@@ -299,7 +301,9 @@ impl<C> World<C> {
     }
 
     /// Removes the `Entity` with the given id
-    pub fn remove(&mut self, id: usize) -> Option<Entity<C>> { self.entities.remove(&id) }
+    pub fn remove(&mut self, id: usize) -> Option<Entity<C>> {
+        self.entities.remove(&id)
+    }
 
     /// Iterates through all `Entities` in the `World`
     pub fn iter(&self) -> std::collections::btree_map::Values<usize, Entity<C>> {
@@ -320,7 +324,7 @@ where
     I: Iterator<Item = E>,
 {
     iter: I,
-    pd:   std::marker::PhantomData<C>,
+    pd: std::marker::PhantomData<C>,
 }
 
 impl<C, E, I> Iterator for Ids<C, E, I>
@@ -330,7 +334,9 @@ where
 {
     type Item = usize;
 
-    fn next(&mut self) -> Option<Self::Item> { self.iter.next().map(|e| e.borrow().id()) }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|e| e.borrow().id())
+    }
 }
 
 /// Adds adapter functions for `Entity` iterators
@@ -343,7 +349,7 @@ where
     fn ids(self) -> Ids<C, E, Self> {
         Ids {
             iter: self,
-            pd:   std::marker::PhantomData,
+            pd: std::marker::PhantomData,
         }
     }
 }
