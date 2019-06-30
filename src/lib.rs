@@ -90,7 +90,7 @@ macro_rules! component {
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
             $(#[$unit_attr])*
             pub struct $id {}
-            #[doc = "A const for indexing `Entity`s"]
+            #[doc(hidden)]
             #[allow(non_upper_case_globals)]
             #[allow(dead_code)]
             pub const $id: $id = $id {};
@@ -100,10 +100,12 @@ macro_rules! component {
                     Component::$id(val)
                 }
                 /// Try to get a reference to this `Component` from an `Entity`
+                #[doc(hidden)]
                 pub fn try_entity(entity: &Entity<Component>) -> Option<&$ty> {
                     entity.get::<$id>()
                 }
                 /// Try to get a mutable reference to this `Component` from an `Entity`
+                #[doc(hidden)]
                 pub fn try_entity_mut(entity: &Entity<Component>) -> Option<&mut $ty> {
                     unsafe {
                         (entity
