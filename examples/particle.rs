@@ -3,7 +3,7 @@
 
 use eks::*;
 
-/// Set up components
+// Set up components
 component! {
     Pos: f64,
     Vel: f64,
@@ -16,7 +16,9 @@ fn particle(pos: f64, vel: f64, sprite: char) -> Entity<Component> {
 }
 
 /// Create some empty space
-fn space() -> Vec<char> { (0..60).map(|_| ' ').collect() }
+fn space() -> Vec<char> {
+    (0..60).map(|_| ' ').collect()
+}
 
 fn main() {
     // Create the world and add some particle entities
