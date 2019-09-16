@@ -127,6 +127,7 @@ macro_rules! component {
                     }
                 }
                 /// Create a new component
+                #[allow(clippy::new_ret_no_self)]
                 fn new(val: $ty) -> $name {
                     $name::$id(val)
                 }
@@ -211,6 +212,12 @@ impl fmt::Display for Id {
     }
 }
 
+impl Default for Id {
+    fn default() -> Self {
+        Id::new()
+    }
+}
+
 /**
 An entity in the ECS
 */
@@ -222,6 +229,12 @@ pub struct Entity<C> {
     /// the `components`
     #[doc(hidden)]
     pub components: HashMap<&'static str, C>,
+}
+
+impl<C> Default for Entity<C> {
+    fn default() -> Self {
+        Entity::new()
+    }
 }
 
 impl<C> Entity<C> {
@@ -335,6 +348,12 @@ pub struct World<C> {
     entities: HashMap<Id, Entity<C>>,
 }
 
+impl<C> Default for World<C> {
+    fn default() -> Self {
+        World::new()
+    }
+}
+
 impl<C> World<C> {
     /// Create a new `World`
     pub fn new() -> World<C> {
@@ -411,16 +430,12 @@ where
 
 /// An iterator adapter that converts and `Entity` iterator to
 /// an iterator over the `Entity`s' ids
-pub struct Ids<C, E, I>
-where
-    E: std::borrow::Borrow<Entity<C>>,
-    I: Iterator<Item = E>,
-{
+pub struct Ids<C, I> {
     iter: I,
     pd: std::marker::PhantomData<C>,
 }
 
-impl<C, E, I> Iterator for Ids<C, E, I>
+impl<C, E, I> Iterator for Ids<C, I>
 where
     E: std::borrow::Borrow<Entity<C>>,
     I: Iterator<Item = E>,
@@ -438,7 +453,7 @@ where
 {
     /// Converts and `Entity` iterator to
     /// an iterator over the `Entity`'s ids
-    fn ids(self) -> Ids<C, E, Self> {
+    fn ids(self) -> Ids<C, Self> {
         Ids {
             iter: self,
             pd: std::marker::PhantomData,
