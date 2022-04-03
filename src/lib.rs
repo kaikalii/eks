@@ -17,31 +17,29 @@ component! {
     Special: (),
 }
 
-fn main() {
-    // Create the world
-    let mut world = World::new();
+// Create the world
+let mut world = World::new();
 
-    // Add some entities
-    let a = world.insert(entity! {
-        Position: 0,
-        Speed: -1,
-    });
-    let b = world.insert(entity! {
-        Position: 2,
-        Speed: 3,
-        Special: (),
-    });
+// Add some entities
+let a = world.insert(entity! {
+    Position: 0,
+    Speed: -1,
+});
+let b = world.insert(entity! {
+    Position: 2,
+    Speed: 3,
+    Special: (),
+});
 
-    // Move the entities forward one step
-    for (position, speed) in map_mut!(Position, Speed in world) {
-        *position += *speed;
-    }
-
-    // Check that it worked
-    assert_eq!(-1, world[a][Position]);
-    assert_eq!( 5, world[b][Position]);
-    assert_eq!(1, tags!(Special in world).count())
+// Move the entities forward one step
+for (position, speed) in map_mut!(Position, Speed in world) {
+    *position += *speed;
 }
+
+// Check that it worked
+assert_eq!(-1, world[a][Position]);
+assert_eq!( 5, world[b][Position]);
+assert_eq!(1, tags!(Special in world).count())
 ```
 */
 
@@ -283,11 +281,9 @@ impl<C> Entity<C> {
     where
         T: Component<Enum = C>,
     {
-        if let Some(component) = self.components.insert(T::AS_STR, T::new(value)) {
-            Some(T::enum_to_val(component))
-        } else {
-            None
-        }
+        self.components
+            .insert(T::AS_STR, T::new(value))
+            .map(T::enum_to_val)
     }
     /// Add a `Component` to the `Entity`
     pub fn with<T>(mut self, value: T::Type) -> Self
@@ -302,11 +298,7 @@ impl<C> Entity<C> {
     where
         T: Component<Enum = C>,
     {
-        if let Some(component) = self.components.remove(T::AS_STR) {
-            Some(T::enum_to_val(component))
-        } else {
-            None
-        }
+        self.components.remove(T::AS_STR).map(T::enum_to_val)
     }
 }
 
@@ -322,13 +314,11 @@ component! {
     Age: u8
 }
 
-fn main() {
-    let dan = entity! {
-        Name: "Dan".to_string(),
-        Age: 26
-    };
-    assert_eq!(Some(&26), dan.get::<Age>())
-}
+let dan = entity! {
+    Name: "Dan".to_string(),
+    Age: 26
+};
+assert_eq!(Some(&26), dan.get::<Age>())
 ```
 */
 #[macro_export]
